@@ -132,8 +132,44 @@
       height: 56px;
     }
 
+    .barra-historico {
+      margin-top: 10px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .btn-nav {
+      background-color: #252320;
+      color: #c7c4be;
+      border: 1px solid #3c3935;
+      padding: 4px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1.2;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-nav:hover:not(:disabled) {
+      background-color: #3a3733;
+      color: #fff;
+    }
+
+    .btn-nav:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    .contador-lance {
+      font-size: 12px;
+      color: #8f8c86;
+      min-width: 74px;
+      text-align: center;
+    }
+
     .painel {
-      margin-top: 12px;
+      margin-top: 10px;
       display: flex;
       gap: 10px;
       align-items: center;
@@ -141,7 +177,7 @@
       justify-content: center;
     }
 
-    button {
+    button.btn-acao {
       background-color: #363431;
       color: #fff;
       border: 1px solid #4a4743;
@@ -151,7 +187,7 @@
       font-size: 13px;
     }
 
-    button:hover {
+    button.btn-acao:hover {
       background-color: #4a4743;
     }
 
@@ -192,10 +228,18 @@
     </div>
   </div>
 
+  <!-- Setas discretas para navegar pelos lances passados -->
+  <div class="barra-historico">
+    <button class="btn-nav" id="btn-inicio" onclick="irParaIndice(0)" title="Início (↑)">|&lt;</button>
+    <button class="btn-nav" id="btn-voltar" onclick="irParaIndice(indiceVisual - 1)" title="Lance anterior (←)">&lsaquo;</button>
+    <span class="contador-lance" id="contador-lance">Início</span>
+    <button class="btn-nav" id="btn-avancar" onclick="irParaIndice(indiceVisual + 1)" title="Próximo lance (→)">&rsaquo;</button>
+    <button class="btn-nav" id="btn-fim" onclick="irParaIndice(lancesHistorico.length)" title="Lance atual (↓)">&gt;|</button>
+  </div>
+
   <div class="painel">
-    <button onclick="reiniciarJogo()">Nova Partida</button>
-    <button onclick="desfazerLance()">Desfazer Lance</button>
-    <button onclick="inverterTabuleiro()">Inverter Lado (X)</button>
+    <button class="btn-acao" onclick="reiniciarJogo()">Nova Partida</button>
+    <button class="btn-acao" onclick="inverterTabuleiro()">Inverter Lado (X)</button>
     <span id="status">Vez das Brancas</span>
   </div>
 
@@ -207,9 +251,15 @@
     const statusEl = document.getElementById('status');
     const modalPromocao = document.getElementById('modal-promocao');
     const opcoesPromocao = document.getElementById('opcoes-promocao');
+    const contadorLanceEl = document.getElementById('contador-lance');
 
     const baseSom = 'https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard';
     const basePeca = 'https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/cburnett';
+
+    // Armazena a linha do tempo completa: posicoes[0] é a posição inicial
+    let posicoesFen = [jogo.fen()];
+    let lancesHistorico = [];
+    let indiceVisual = 0;
 
     function criarAudio(nomeArquivo) {
       const el = new Audio(`${baseSom}/${nomeArquivo}`);
@@ -229,21 +279,21 @@
       copia.play().catch(() => {});
     }
 
-    function estaEmXeque() {
-      if (typeof jogo.isCheck === 'function' && jogo.isCheck()) return true;
-      if (typeof jogo.inCheck === 'function' && jogo.inCheck()) return true;
+    function estaEmXeque(instancia = jogo) {
+      if (typeof instancia.isCheck === 'function' && instancia.isCheck()) return true;
+      if (typeof instancia.inCheck === 'function' && instancia.inCheck()) return true;
 
-      if (typeof jogo.board === 'function' && typeof jogo.isAttacked === 'function') {
-        const corAtual = jogo.turn();
+      if (typeof instancia.board === 'function' && typeof instancia.isAttacked === 'function') {
+        const corAtual = instancia.turn();
         const inimigo = corAtual === 'w' ? 'b' : 'w';
         const colunas = 'abcdefgh';
-        const tabuleiro = jogo.board();
+        const tabuleiro = instancia.board();
         for (let linhaIdx = 0; linhaIdx < 8; linhaIdx++) {
           for (let colIdx = 0; colIdx < 8; colIdx++) {
             const casaObj = tabuleiro[linhaIdx][colIdx];
             if (casaObj && casaObj.type === 'k' && casaObj.color === corAtual) {
               const casaNome = `${colunas[colIdx]}${8 - linhaIdx}`;
-              return jogo.isAttacked(casaNome, inimigo);
+              return instancia.isAttacked(casaNome, inimigo);
             }
           }
         }
@@ -251,9 +301,9 @@
       return false;
     }
 
-    function estaEmXequeMate() {
-      if (typeof jogo.isCheckmate === 'function') return jogo.isCheckmate();
-      if (typeof jogo.inCheckmate === 'function') return jogo.inCheckmate();
+    function estaEmXequeMate(instancia = jogo) {
+      if (typeof instancia.isCheckmate === 'function') return instancia.isCheckmate();
+      if (typeof instancia.inCheckmate === 'function') return instancia.inCheckmate();
       return false;
     }
 
@@ -265,13 +315,13 @@
       reproduzirSom(sons.mover);
     }
 
-    function obterLancesLegais() {
+    function obterLancesLegais(instancia = jogo) {
       const dests = new Map();
       const colunas = 'abcdefgh';
       for (let c = 0; c < 8; c++) {
         for (let l = 1; l <= 8; l++) {
           const casa = `${colunas[c]}${l}`;
-          const lances = jogo.moves({ square: casa, verbose: true });
+          const lances = instancia.moves({ square: casa, verbose: true });
           if (lances.length) {
             dests.set(casa, lances.map(l => l.to));
           }
@@ -280,39 +330,28 @@
       return dests;
     }
 
-    function obterUltimoLance() {
-      const historico = jogo.history({ verbose: true });
-      if (!historico.length) return undefined;
-      const ultimo = historico[historico.length - 1];
-      return [ultimo.from, ultimo.to];
-    }
-
-    function atualizarMaterialECapturas() {
+    function atualizarMaterialECapturas(instanciaVisual, ateIndice) {
       const valores = { p: 1, n: 3, b: 3, r: 5, q: 9 };
       const ordem = { q: 1, r: 2, b: 3, n: 4, p: 5 };
       const codigosImg = { p: 'P', n: 'N', b: 'B', r: 'R', q: 'Q' };
 
-      const historico = jogo.history({ verbose: true });
-      const capturadasPelasBrancas = []; // peças pretas capturadas
-      const capturadasPelasPretas = [];  // peças brancas capturadas
+      const capturadasPelasBrancas = [];
+      const capturadasPelasPretas = [];
 
-      for (const lance of historico) {
-        if (lance.captured) {
-          if (lance.color === 'w') {
-            capturadasPelasBrancas.push(lance.captured);
-          } else {
-            capturadasPelasPretas.push(lance.captured);
-          }
+      for (let i = 0; i < ateIndice; i++) {
+        const lance = lancesHistorico[i];
+        if (lance && lance.captured) {
+          if (lance.color === 'w') capturadasPelasBrancas.push(lance.captured);
+          else capturadasPelasPretas.push(lance.captured);
         }
       }
 
       capturadasPelasBrancas.sort((a, b) => ordem[a] - ordem[b]);
       capturadasPelasPretas.sort((a, b) => ordem[a] - ordem[b]);
 
-      // Calcula vantagem material real no tabuleiro (considera promoções também)
       let pontosBrancas = 0;
       let pontosPretas = 0;
-      for (const linha of jogo.board()) {
+      for (const linha of instanciaVisual.board()) {
         for (const casa of linha) {
           if (casa && valores[casa.type]) {
             if (casa.color === 'w') pontosBrancas += valores[casa.type];
@@ -323,8 +362,8 @@
 
       const diff = pontosBrancas - pontosPretas;
       const orientacao = cg ? cg.state.orientation : 'white';
-
       const topoEhPretas = orientacao === 'white';
+
       document.getElementById('nome-topo').textContent = topoEhPretas ? 'Pretas' : 'Brancas';
       document.getElementById('nome-base').textContent = topoEhPretas ? 'Brancas' : 'Pretas';
 
@@ -355,31 +394,67 @@
       }
     }
 
-    function atualizarStatus() {
-      if (estaEmXequeMate()) {
-        statusEl.textContent = `Xeque-mate! Vitória das ${jogo.turn() === 'w' ? 'Pretas' : 'Brancas'}.`;
-      } else if (typeof jogo.isDraw === 'function' && jogo.isDraw()) {
+    function atualizarStatus(instanciaVisual) {
+      if (estaEmXequeMate(instanciaVisual)) {
+        statusEl.textContent = `Xeque-mate! Vitória das ${instanciaVisual.turn() === 'w' ? 'Pretas' : 'Brancas'}.`;
+      } else if (typeof instanciaVisual.isDraw === 'function' && instanciaVisual.isDraw()) {
         statusEl.textContent = 'Empate!';
       } else {
-        const vez = jogo.turn() === 'w' ? 'Brancas' : 'Pretas';
-        statusEl.textContent = `Vez das ${vez}${estaEmXeque() ? ' (Xeque!)' : ''}`;
+        const vez = instanciaVisual.turn() === 'w' ? 'Brancas' : 'Pretas';
+        const revisando = indiceVisual < lancesHistorico.length ? ' · Histórico' : '';
+        statusEl.textContent = `Vez das ${vez}${estaEmXeque(instanciaVisual) ? ' (Xeque!)' : ''}${revisando}`;
       }
     }
 
-    function sincronizarTabuleiro(lanceExecutado) {
-      const emXeque = estaEmXeque();
+    function atualizarControlesHistorico() {
+      const total = lancesHistorico.length;
+      contadorLanceEl.textContent = indiceVisual === 0
+        ? (total === 0 ? 'Início' : `0 / ${total}`)
+        : `${indiceVisual} / ${total}`;
+
+      document.getElementById('btn-inicio').disabled = indiceVisual <= 0;
+      document.getElementById('btn-voltar').disabled = indiceVisual <= 0;
+      document.getElementById('btn-avancar').disabled = indiceVisual >= total;
+      document.getElementById('btn-fim').disabled = indiceVisual >= total;
+    }
+
+    function renderizarPosicaoVisual(lanceExecutado = null) {
+      const fenVisual = posicoesFen[indiceVisual];
+      const instanciaVisual = new Chess(fenVisual);
+      const lanceAnterior = indiceVisual > 0 ? lancesHistorico[indiceVisual - 1] : null;
+      const noFinal = indiceVisual === lancesHistorico.length;
+
       cg.set({
-        fen: jogo.fen(),
-        turnColor: jogo.turn() === 'w' ? 'white' : 'black',
-        check: emXeque,
-        lastMove: obterUltimoLance(),
+        fen: fenVisual,
+        turnColor: instanciaVisual.turn() === 'w' ? 'white' : 'black',
+        check: estaEmXeque(instanciaVisual),
+        lastMove: lanceAnterior ? [lanceAnterior.from, lanceAnterior.to] : undefined,
         movable: {
-          dests: obterLancesLegais()
+          color: noFinal ? 'both' : false,
+          dests: noFinal ? obterLancesLegais(instanciaVisual) : new Map()
         }
       });
-      atualizarStatus();
-      atualizarMaterialECapturas();
+
+      atualizarStatus(instanciaVisual);
+      atualizarMaterialECapturas(instanciaVisual, indiceVisual);
+      atualizarControlesHistorico();
       if (lanceExecutado) tocarSom(lanceExecutado);
+    }
+
+    function truncarParaIndiceVisual() {
+      if (indiceVisual < lancesHistorico.length) {
+        posicoesFen = posicoesFen.slice(0, indiceVisual + 1);
+        lancesHistorico = lancesHistorico.slice(0, indiceVisual);
+        jogo.load(posicoesFen[indiceVisual]);
+      }
+    }
+
+    function registrarNovoLance(lance) {
+      if (!lance) return;
+      posicoesFen.push(jogo.fen());
+      lancesHistorico.push(lance);
+      indiceVisual = lancesHistorico.length;
+      renderizarPosicaoVisual(lance);
     }
 
     function ehPromocao(orig, dest) {
@@ -406,7 +481,7 @@
         btn.onclick = () => {
           modalPromocao.classList.remove('ativo');
           const lance = jogo.move({ from: orig, to: dest, promotion: p.codigo });
-          sincronizarTabuleiro(lance);
+          registrarNovoLance(lance);
         };
         opcoesPromocao.appendChild(btn);
       });
@@ -426,51 +501,77 @@
       },
       events: {
         move: (orig, dest) => {
+          // Se o jogador voltou no histórico e decidiu fazer um lance novo a partir dali,
+          // corta a linha futura antiga e segue o novo lance.
+          if (indiceVisual < lancesHistorico.length) {
+            truncarParaIndiceVisual();
+          }
+
           if (ehPromocao(orig, dest)) {
             abrirMenuPromocao(orig, dest, jogo.turn());
             return;
           }
           const lance = jogo.move({ from: orig, to: dest });
-          sincronizarTabuleiro(lance);
+          registrarNovoLance(lance);
         }
       }
     });
 
+    window.irParaIndice = (novoIndice) => {
+      modalPromocao.classList.remove('ativo');
+      const limite = lancesHistorico.length;
+      const alvo = Math.max(0, Math.min(limite, novoIndice));
+      if (alvo === indiceVisual) return;
+      indiceVisual = alvo;
+      renderizarPosicaoVisual(null);
+    };
+
     document.addEventListener('keydown', (e) => {
-      if (e.key.toLowerCase() === 'x') window.inverterTabuleiro();
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        window.irParaIndice(indiceVisual - 1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        window.irParaIndice(indiceVisual + 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        window.irParaIndice(0);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        window.irParaIndice(lancesHistorico.length);
+      } else if (e.key.toLowerCase() === 'x') {
+        window.inverterTabuleiro();
+      }
     });
 
     window.reiniciarJogo = () => {
       modalPromocao.classList.remove('ativo');
       jogo.reset();
+      posicoesFen = [jogo.fen()];
+      lancesHistorico = [];
+      indiceVisual = 0;
       cg.set({
         fen: jogo.fen(),
         turnColor: 'white',
         check: false,
         lastMove: undefined,
         drawable: { shapes: [] },
-        movable: { dests: obterLancesLegais() }
+        movable: {
+          color: 'both',
+          dests: obterLancesLegais()
+        }
       });
-      atualizarStatus();
-      atualizarMaterialECapturas();
-    };
-
-    window.desfazerLance = () => {
-      if (modalPromocao.classList.contains('ativo')) {
-        modalPromocao.classList.remove('ativo');
-        sincronizarTabuleiro(null);
-        return;
-      }
-      const desfeito = jogo.undo();
-      if (desfeito) {
-        sincronizarTabuleiro(null);
-      }
+      atualizarStatus(jogo);
+      atualizarMaterialECapturas(jogo, 0);
+      atualizarControlesHistorico();
     };
 
     window.inverterTabuleiro = () => {
       cg.toggleOrientation();
-      atualizarMaterialECapturas();
+      renderizarPosicaoVisual(null);
     };
+
+    atualizarControlesHistorico();
   </script>
 
 </body>
