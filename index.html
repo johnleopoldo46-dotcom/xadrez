@@ -16,9 +16,51 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
       user-select: none;
+    }
+
+    .barra-jogador {
+      width: 480px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 4px;
+      box-sizing: border-box;
+    }
+
+    .info-lado {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nome-lado {
+      font-size: 13px;
+      font-weight: 600;
+      color: #d6d3ce;
+    }
+
+    .lista-capturas {
+      display: flex;
+      align-items: center;
+      gap: 1px;
+      min-height: 22px;
+    }
+
+    .lista-capturas img {
+      width: 20px;
+      height: 20px;
+      margin-right: -4px;
+    }
+
+    .vantagem {
+      font-size: 13px;
+      font-weight: bold;
+      color: #a3a09b;
+      margin-left: 8px;
     }
 
     .container-tabuleiro {
@@ -91,20 +133,22 @@
     }
 
     .painel {
-      margin-top: 16px;
+      margin-top: 12px;
       display: flex;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
     button {
       background-color: #363431;
       color: #fff;
       border: 1px solid #4a4743;
-      padding: 8px 16px;
+      padding: 7px 14px;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
     }
 
     button:hover {
@@ -113,12 +157,22 @@
 
     #status {
       font-weight: bold;
-      min-width: 190px;
+      min-width: 175px;
       text-align: center;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
+
+  <!-- Barra superior (Pretas por padrão) -->
+  <div class="barra-jogador" id="barra-topo">
+    <div class="info-lado">
+      <span class="nome-lado" id="nome-topo">Pretas</span>
+      <div class="lista-capturas" id="capturas-topo"></div>
+      <span class="vantagem" id="vantagem-topo"></span>
+    </div>
+  </div>
 
   <div class="container-tabuleiro">
     <div id="tabuleiro" class="brown cburnett"></div>
@@ -129,8 +183,18 @@
     </div>
   </div>
 
+  <!-- Barra inferior (Brancas por padrão) -->
+  <div class="barra-jogador" id="barra-base">
+    <div class="info-lado">
+      <span class="nome-lado" id="nome-base">Brancas</span>
+      <div class="lista-capturas" id="capturas-base"></div>
+      <span class="vantagem" id="vantagem-base"></span>
+    </div>
+  </div>
+
   <div class="painel">
     <button onclick="reiniciarJogo()">Nova Partida</button>
+    <button onclick="desfazerLance()">Desfazer Lance</button>
     <button onclick="inverterTabuleiro()">Inverter Lado (X)</button>
     <span id="status">Vez das Brancas</span>
   </div>
@@ -145,6 +209,7 @@
     const opcoesPromocao = document.getElementById('opcoes-promocao');
 
     const baseSom = 'https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard';
+    const basePeca = 'https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/cburnett';
 
     function criarAudio(nomeArquivo) {
       const el = new Audio(`${baseSom}/${nomeArquivo}`);
@@ -193,7 +258,6 @@
     }
 
     function tocarSom(lance) {
-      // Sem bip sintético: usa o som de captura quando há captura, ou o som padrão de lance
       if (lance && lance.captured) {
         reproduzirSom(sons.capturar);
         return;
@@ -216,6 +280,81 @@
       return dests;
     }
 
+    function obterUltimoLance() {
+      const historico = jogo.history({ verbose: true });
+      if (!historico.length) return undefined;
+      const ultimo = historico[historico.length - 1];
+      return [ultimo.from, ultimo.to];
+    }
+
+    function atualizarMaterialECapturas() {
+      const valores = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+      const ordem = { q: 1, r: 2, b: 3, n: 4, p: 5 };
+      const codigosImg = { p: 'P', n: 'N', b: 'B', r: 'R', q: 'Q' };
+
+      const historico = jogo.history({ verbose: true });
+      const capturadasPelasBrancas = []; // peças pretas capturadas
+      const capturadasPelasPretas = [];  // peças brancas capturadas
+
+      for (const lance of historico) {
+        if (lance.captured) {
+          if (lance.color === 'w') {
+            capturadasPelasBrancas.push(lance.captured);
+          } else {
+            capturadasPelasPretas.push(lance.captured);
+          }
+        }
+      }
+
+      capturadasPelasBrancas.sort((a, b) => ordem[a] - ordem[b]);
+      capturadasPelasPretas.sort((a, b) => ordem[a] - ordem[b]);
+
+      // Calcula vantagem material real no tabuleiro (considera promoções também)
+      let pontosBrancas = 0;
+      let pontosPretas = 0;
+      for (const linha of jogo.board()) {
+        for (const casa of linha) {
+          if (casa && valores[casa.type]) {
+            if (casa.color === 'w') pontosBrancas += valores[casa.type];
+            else pontosPretas += valores[casa.type];
+          }
+        }
+      }
+
+      const diff = pontosBrancas - pontosPretas;
+      const orientacao = cg ? cg.state.orientation : 'white';
+
+      const topoEhPretas = orientacao === 'white';
+      document.getElementById('nome-topo').textContent = topoEhPretas ? 'Pretas' : 'Brancas';
+      document.getElementById('nome-base').textContent = topoEhPretas ? 'Brancas' : 'Pretas';
+
+      const listaTopo = topoEhPretas ? capturadasPelasPretas : capturadasPelasBrancas;
+      const corIconeTopo = topoEhPretas ? 'w' : 'b';
+      const listaBase = topoEhPretas ? capturadasPelasBrancas : capturadasPelasPretas;
+      const corIconeBase = topoEhPretas ? 'b' : 'w';
+
+      document.getElementById('capturas-topo').innerHTML = listaTopo
+        .map(p => `<img src="${basePeca}/${corIconeTopo}${codigosImg[p]}.svg" alt="${p}">`)
+        .join('');
+
+      document.getElementById('capturas-base').innerHTML = listaBase
+        .map(p => `<img src="${basePeca}/${corIconeBase}${codigosImg[p]}.svg" alt="${p}">`)
+        .join('');
+
+      const vantagemTopo = document.getElementById('vantagem-topo');
+      const vantagemBase = document.getElementById('vantagem-base');
+      vantagemTopo.textContent = '';
+      vantagemBase.textContent = '';
+
+      if (diff > 0) {
+        if (topoEhPretas) vantagemBase.textContent = `+${diff}`;
+        else vantagemTopo.textContent = `+${diff}`;
+      } else if (diff < 0) {
+        if (topoEhPretas) vantagemTopo.textContent = `+${Math.abs(diff)}`;
+        else vantagemBase.textContent = `+${Math.abs(diff)}`;
+      }
+    }
+
     function atualizarStatus() {
       if (estaEmXequeMate()) {
         statusEl.textContent = `Xeque-mate! Vitória das ${jogo.turn() === 'w' ? 'Pretas' : 'Brancas'}.`;
@@ -233,11 +372,13 @@
         fen: jogo.fen(),
         turnColor: jogo.turn() === 'w' ? 'white' : 'black',
         check: emXeque,
+        lastMove: obterUltimoLance(),
         movable: {
           dests: obterLancesLegais()
         }
       });
       atualizarStatus();
+      atualizarMaterialECapturas();
       if (lanceExecutado) tocarSom(lanceExecutado);
     }
 
@@ -261,7 +402,7 @@
         const btn = document.createElement('div');
         btn.className = 'opcao-peca';
         btn.title = p.nome;
-        btn.innerHTML = `<img src="https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/cburnett/${p.img}.svg" alt="${p.nome}">`;
+        btn.innerHTML = `<img src="${basePeca}/${p.img}.svg" alt="${p.nome}">`;
         btn.onclick = () => {
           modalPromocao.classList.remove('ativo');
           const lance = jogo.move({ from: orig, to: dest, promotion: p.codigo });
@@ -296,7 +437,7 @@
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key.toLowerCase() === 'x') cg.toggleOrientation();
+      if (e.key.toLowerCase() === 'x') window.inverterTabuleiro();
     });
 
     window.reiniciarJogo = () => {
@@ -311,10 +452,24 @@
         movable: { dests: obterLancesLegais() }
       });
       atualizarStatus();
+      atualizarMaterialECapturas();
+    };
+
+    window.desfazerLance = () => {
+      if (modalPromocao.classList.contains('ativo')) {
+        modalPromocao.classList.remove('ativo');
+        sincronizarTabuleiro(null);
+        return;
+      }
+      const desfeito = jogo.undo();
+      if (desfeito) {
+        sincronizarTabuleiro(null);
+      }
     };
 
     window.inverterTabuleiro = () => {
       cg.toggleOrientation();
+      atualizarMaterialECapturas();
     };
   </script>
 
