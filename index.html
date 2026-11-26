@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Meu Tabuleiro de Xadrez</title>
+  <title>Xadrez da Leopoldóvia</title>
   <!-- Estilos oficiais do Chessground -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.base.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.brown.css">
@@ -36,7 +36,7 @@
       display: block;
     }
 
-    /* Deixa o tabuleiro marrom clássico mais nítido e fiel */
+    /* Tabuleiro marrom clássico */
     .brown cg-board {
       background-color: #f0d9b5;
       background-image: repeating-conic-gradient(#b58863 0% 25%, #f0d9b5 0% 50%) !important;
@@ -122,7 +122,7 @@
 
   <div class="container-tabuleiro">
     <div id="tabuleiro" class="brown cburnett"></div>
-    
+
     <!-- Janela de escolha de promoção -->
     <div id="modal-promocao">
       <div class="caixa-promocao" id="opcoes-promocao"></div>
@@ -145,16 +145,27 @@
     const opcoesPromocao = document.getElementById('opcoes-promocao');
 
     const baseSom = 'https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard';
-    const urlsSons = {
-      mover: `${baseSom}/Move.mp3`,
-      capturar: `${baseSom}/Capture.mp3`,
-      xeque: `${baseSom}/Check.mp3`,
-      fim: `${baseSom}/GenericNotify.mp3`
+
+    function criarAudio(nomeArquivo) {
+      const el = new Audio(`${baseSom}/${nomeArquivo}`);
+      el.preload = 'auto';
+      return el;
+    }
+
+    const sons = {
+      mover: criarAudio('Move.mp3'),
+      capturar: criarAudio('Capture.mp3'),
+      xeque: criarAudio('Check.mp3'),
+      fim: criarAudio('GenericNotify.mp3')
     };
 
-    function reproduzirAudio(url) {
-      const audio = new Audio(url);
-      audio.play().catch(() => {});
+    function reproduzirSom(audioBase) {
+      if (!audioBase) return;
+      const copia = audioBase.cloneNode();
+      copia.volume = 1;
+      copia.play().catch((err) => {
+        console.warn('Falha ao tocar áudio:', audioBase.src, err);
+      });
     }
 
     function estaEmXeque() {
@@ -187,18 +198,18 @@
 
     function tocarSom(lance) {
       if (estaEmXequeMate() || estaEmXeque()) {
-        reproduzirAudio(urlsSons.xeque);
+        reproduzirSom(sons.xeque);
         return;
       }
       if (typeof jogo.isGameOver === 'function' && jogo.isGameOver()) {
-        reproduzirAudio(urlsSons.fim);
+        reproduzirSom(sons.fim);
         return;
       }
       if (lance && lance.captured) {
-        reproduzirAudio(urlsSons.capturar);
+        reproduzirSom(sons.capturar);
         return;
       }
-      reproduzirAudio(urlsSons.mover);
+      reproduzirSom(sons.mover);
     }
 
     function obterLancesLegais() {
