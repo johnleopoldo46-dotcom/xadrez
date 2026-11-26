@@ -154,8 +154,7 @@
 
     const sons = {
       mover: criarAudio('Move.mp3'),
-      capturar: criarAudio('Capture.mp3'),
-      fim: criarAudio('GenericNotify.mp3')
+      capturar: criarAudio('Capture.mp3')
     };
 
     function reproduzirSom(audioBase) {
@@ -194,10 +193,7 @@
     }
 
     function tocarSom(lance) {
-      if (typeof jogo.isGameOver === 'function' && jogo.isGameOver()) {
-        reproduzirSom(sons.fim);
-        return;
-      }
+      // Sem bip sintético: usa o som de captura quando há captura, ou o som padrão de lance
       if (lance && lance.captured) {
         reproduzirSom(sons.capturar);
         return;
