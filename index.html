@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Meu Tabuleiro de Xadrez</title>
-  <!-- Estilos oficiais do Chessground (Tabuleiro, Peças cburnett e Setas) -->
+  <!-- Estilos oficiais do Chessground -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.base.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.brown.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.cburnett.css">
@@ -18,21 +18,85 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
+      user-select: none;
     }
+
+    .container-tabuleiro {
+      position: relative;
+      width: 480px;
+      height: 480px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.75);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
     #tabuleiro, cg-wrap {
       width: 480px;
       height: 480px;
       display: block;
     }
-    #tabuleiro {
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+
+    /* Deixa o tabuleiro marrom clássico mais nítido e fiel */
+    .brown cg-board {
+      background-color: #f0d9b5;
+      background-image: repeating-conic-gradient(#b58863 0% 25%, #f0d9b5 0% 50%) !important;
+      background-size: 120px 120px !important;
     }
+
+    /* Sobreposição de escolha de promoção */
+    #modal-promocao {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #modal-promocao.ativo {
+      display: flex;
+    }
+
+    .caixa-promocao {
+      background: #262421;
+      border: 2px solid #4a4743;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      gap: 10px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.8);
+    }
+
+    .opcao-peca {
+      width: 68px;
+      height: 68px;
+      background: #363431;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s, background 0.15s;
+    }
+
+    .opcao-peca:hover {
+      background: #524e4a;
+      transform: scale(1.06);
+    }
+
+    .opcao-peca img {
+      width: 56px;
+      height: 56px;
+    }
+
     .painel {
       margin-top: 16px;
       display: flex;
       gap: 12px;
       align-items: center;
     }
+
     button {
       background-color: #363431;
       color: #fff;
@@ -42,19 +106,28 @@
       cursor: pointer;
       font-size: 14px;
     }
+
     button:hover {
       background-color: #4a4743;
     }
+
     #status {
       font-weight: bold;
-      min-width: 180px;
+      min-width: 190px;
       text-align: center;
     }
   </style>
 </head>
 <body>
 
-  <div id="tabuleiro" class="brown cburnett"></div>
+  <div class="container-tabuleiro">
+    <div id="tabuleiro" class="brown cburnett"></div>
+    
+    <!-- Janela de escolha de promoção -->
+    <div id="modal-promocao">
+      <div class="caixa-promocao" id="opcoes-promocao"></div>
+    </div>
+  </div>
 
   <div class="painel">
     <button onclick="reiniciarJogo()">Nova Partida</button>
@@ -68,6 +141,29 @@
 
     const jogo = new Chess();
     const statusEl = document.getElementById('status');
+    const modalPromocao = document.getElementById('modal-promocao');
+    const opcoesPromocao = document.getElementById('opcoes-promocao');
+
+    // Sons oficiais (repositório aberto do Lichess)
+    const sons = {
+      mover: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Move.mp3'),
+      capturar: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Capture.mp3'),
+      xeque: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Check.mp3'),
+      fim: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/GenericNotify.mp3')
+    };
+
+    function tocarSom(lance) {
+      let audio = sons.mover;
+      if (jogo.isGameOver()) {
+        audio = sons.fim;
+      } else if (jogo.inCheck()) {
+        audio = sons.xeque;
+      } else if (lance.captured) {
+        audio = sons.capturar;
+      }
+      audio.currentTime = 0;
+      audio.play().catch(() => {}); // Evita erro caso o navegador bloqueie áudio antes do primeiro clique
+    }
 
     function obterLancesLegais() {
       const dests = new Map();
@@ -95,6 +191,51 @@
       }
     }
 
+    function sincronizarTabuleiro(lanceExecutado) {
+      cg.set({
+        fen: jogo.fen(),
+        turnColor: jogo.turn() === 'w' ? 'white' : 'black',
+        check: jogo.inCheck(),
+        movable: {
+          dests: obterLancesLegais()
+        }
+      });
+      atualizarStatus();
+      if (lanceExecutado) tocarSom(lanceExecutado);
+    }
+
+    function ehPromocao(orig, dest) {
+      const peca = jogo.get(orig);
+      if (!peca || peca.type !== 'p') return false;
+      return (peca.color === 'w' && dest[1] === '8') || (peca.color === 'b' && dest[1] === '1');
+    }
+
+    function abrirMenuPromocao(orig, dest, cor) {
+      const prefixo = cor === 'w' ? 'w' : 'b';
+      const pecas = [
+        { codigo: 'q', img: `${prefixo}Q`, nome: 'Dama' },
+        { codigo: 'r', img: `${prefixo}R`, nome: 'Torre' },
+        { codigo: 'b', img: `${prefixo}B`, nome: 'Bispo' },
+        { codigo: 'n', img: `${prefixo}N`, nome: 'Cavalo' }
+      ];
+
+      opcoesPromocao.innerHTML = '';
+      pecas.forEach(p => {
+        const btn = document.createElement('div');
+        btn.className = 'opcao-peca';
+        btn.title = p.nome;
+        btn.innerHTML = `<img src="https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/cburnett/${p.img}.svg" alt="${p.nome}">`;
+        btn.onclick = () => {
+          modalPromocao.classList.remove('ativo');
+          const lance = jogo.move({ from: orig, to: dest, promotion: p.codigo });
+          sincronizarTabuleiro(lance);
+        };
+        opcoesPromocao.appendChild(btn);
+      });
+
+      modalPromocao.classList.add('ativo');
+    }
+
     const cg = Chessground(document.getElementById('tabuleiro'), {
       movable: {
         color: 'both',
@@ -107,16 +248,12 @@
       },
       events: {
         move: (orig, dest) => {
-          jogo.move({ from: orig, to: dest, promotion: 'q' });
-          cg.set({
-            fen: jogo.fen(),
-            turnColor: jogo.turn() === 'w' ? 'white' : 'black',
-            check: jogo.inCheck(),
-            movable: {
-              dests: obterLancesLegais()
-            }
-          });
-          atualizarStatus();
+          if (ehPromocao(orig, dest)) {
+            abrirMenuPromocao(orig, dest, jogo.turn());
+            return;
+          }
+          const lance = jogo.move({ from: orig, to: dest });
+          sincronizarTabuleiro(lance);
         }
       }
     });
@@ -126,6 +263,7 @@
     });
 
     window.reiniciarJogo = () => {
+      modalPromocao.classList.remove('ativo');
       jogo.reset();
       cg.set({
         fen: jogo.fen(),
