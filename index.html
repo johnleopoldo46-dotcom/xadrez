@@ -152,17 +152,29 @@
       fim: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/GenericNotify.mp3')
     };
 
+    function estaEmXeque() {
+      if (typeof jogo.isCheck === 'function') return jogo.isCheck();
+      if (typeof jogo.inCheck === 'function') return jogo.inCheck();
+      return false;
+    }
+
+    function estaEmXequeMate() {
+      if (typeof jogo.isCheckmate === 'function') return jogo.isCheckmate();
+      if (typeof jogo.inCheckmate === 'function') return jogo.inCheckmate();
+      return false;
+    }
+
     function tocarSom(lance) {
       let audio = sons.mover;
-      if (jogo.isGameOver()) {
-        audio = sons.fim;
-      } else if (jogo.inCheck()) {
+      if (estaEmXequeMate() || estaEmXeque()) {
         audio = sons.xeque;
-      } else if (lance.captured) {
+      } else if (jogo.isGameOver()) {
+        audio = sons.fim;
+      } else if (lance && lance.captured) {
         audio = sons.capturar;
       }
       audio.currentTime = 0;
-      audio.play().catch(() => {}); // Evita erro caso o navegador bloqueie áudio antes do primeiro clique
+      audio.play().catch(() => {});
     }
 
     function obterLancesLegais() {
@@ -181,21 +193,22 @@
     }
 
     function atualizarStatus() {
-      if (jogo.isCheckmate()) {
+      if (estaEmXequeMate()) {
         statusEl.textContent = `Xeque-mate! Vitória das ${jogo.turn() === 'w' ? 'Pretas' : 'Brancas'}.`;
       } else if (jogo.isDraw()) {
         statusEl.textContent = 'Empate!';
       } else {
         const vez = jogo.turn() === 'w' ? 'Brancas' : 'Pretas';
-        statusEl.textContent = `Vez das ${vez}${jogo.inCheck() ? ' (Xeque!)' : ''}`;
+        statusEl.textContent = `Vez das ${vez}${estaEmXeque() ? ' (Xeque!)' : ''}`;
       }
     }
 
     function sincronizarTabuleiro(lanceExecutado) {
+      const emXeque = estaEmXeque();
       cg.set({
         fen: jogo.fen(),
         turnColor: jogo.turn() === 'w' ? 'white' : 'black',
-        check: jogo.inCheck(),
+        check: emXeque,
         movable: {
           dests: obterLancesLegais()
         }
