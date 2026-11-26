@@ -422,7 +422,6 @@
       const fenVisual = posicoesFen[indiceVisual];
       const instanciaVisual = new Chess(fenVisual);
       const lanceAnterior = indiceVisual > 0 ? lancesHistorico[indiceVisual - 1] : null;
-      const noFinal = indiceVisual === lancesHistorico.length;
 
       cg.set({
         fen: fenVisual,
@@ -430,8 +429,9 @@
         check: estaEmXeque(instanciaVisual),
         lastMove: lanceAnterior ? [lanceAnterior.from, lanceAnterior.to] : undefined,
         movable: {
-          color: noFinal ? 'both' : false,
-          dests: noFinal ? obterLancesLegais(instanciaVisual) : new Map()
+          color: 'both',
+          free: false,
+          dests: obterLancesLegais(instanciaVisual)
         }
       });
 
@@ -501,8 +501,6 @@
       },
       events: {
         move: (orig, dest) => {
-          // Se o jogador voltou no histórico e decidiu fazer um lance novo a partir dali,
-          // corta a linha futura antiga e segue o novo lance.
           if (indiceVisual < lancesHistorico.length) {
             truncarParaIndiceVisual();
           }
@@ -512,6 +510,10 @@
             return;
           }
           const lance = jogo.move({ from: orig, to: dest });
+          if (!lance) {
+            renderizarPosicaoVisual(null);
+            return;
+          }
           registrarNovoLance(lance);
         }
       }
