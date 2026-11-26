@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Meu Tabuleiro de Xadrez</title>
+  <title>Xadrez da Leopoldóvia </title>
   <!-- Estilos oficiais do Chessground -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.base.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.brown.css">
@@ -144,17 +144,59 @@
     const modalPromocao = document.getElementById('modal-promocao');
     const opcoesPromocao = document.getElementById('opcoes-promocao');
 
-    // Sons oficiais (repositório aberto do Lichess)
-    const sons = {
-      mover: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Move.mp3'),
-      capturar: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Capture.mp3'),
-      xeque: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Check.mp3'),
-      fim: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/GenericNotify.mp3')
+    const urlsSons = {
+      mover: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Move.mp3',
+      capturar: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Capture.mp3',
+      xeque: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Check.mp3',
+      fim: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/GenericNotify.mp3'
     };
 
+    function somReservaXeque() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // Ré5
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08); // Lá5
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.26);
+      } catch (_) {}
+    }
+
+    function reproduzirAudio(url, usarReservaXeque = false) {
+      const audio = new Audio(url);
+      audio.play().catch(() => {
+        if (usarReservaXeque) somReservaXeque();
+      });
+    }
+
     function estaEmXeque() {
-      if (typeof jogo.isCheck === 'function') return jogo.isCheck();
-      if (typeof jogo.inCheck === 'function') return jogo.inCheck();
+      if (typeof jogo.isCheck === 'function' && jogo.isCheck()) return true;
+      if (typeof jogo.inCheck === 'function' && jogo.inCheck()) return true;
+
+      // Verificação alternativa caso o método direto não responda como esperado
+      if (typeof jogo.board === 'function' && typeof jogo.isAttacked === 'function') {
+        const corAtual = jogo.turn();
+        const inimigo = corAtual === 'w' ? 'b' : 'w';
+        const colunas = 'abcdefgh';
+        const tabuleiro = jogo.board();
+        for (let linhaIdx = 0; linhaIdx < 8; linhaIdx++) {
+          for (let colIdx = 0; colIdx < 8; colIdx++) {
+            const casaObj = tabuleiro[linhaIdx][colIdx];
+            if (casaObj && casaObj.type === 'k' && casaObj.color === corAtual) {
+              const casaNome = `${colunas[colIdx]}${8 - linhaIdx}`;
+              return jogo.isAttacked(casaNome, inimigo);
+            }
+          }
+        }
+      }
       return false;
     }
 
@@ -165,16 +207,19 @@
     }
 
     function tocarSom(lance) {
-      let audio = sons.mover;
       if (estaEmXequeMate() || estaEmXeque()) {
-        audio = sons.xeque;
-      } else if (jogo.isGameOver()) {
-        audio = sons.fim;
-      } else if (lance && lance.captured) {
-        audio = sons.capturar;
+        reproduzirAudio(urlsSons.xeque, true);
+        return;
       }
-      audio.currentTime = 0;
-      audio.play().catch(() => {});
+      if (typeof jogo.isGameOver === 'function' && jogo.isGameOver()) {
+        reproduzirAudio(urlsSons.fim, false);
+        return;
+      }
+      if (lance && lance.captured) {
+        reproduzirAudio(urlsSons.capturar, false);
+        return;
+      }
+      reproduzirAudio(urlsSons.mover, false);
     }
 
     function obterLancesLegais() {
@@ -195,7 +240,7 @@
     function atualizarStatus() {
       if (estaEmXequeMate()) {
         statusEl.textContent = `Xeque-mate! Vitória das ${jogo.turn() === 'w' ? 'Pretas' : 'Brancas'}.`;
-      } else if (jogo.isDraw()) {
+      } else if (typeof jogo.isDraw === 'function' && jogo.isDraw()) {
         statusEl.textContent = 'Empate!';
       } else {
         const vez = jogo.turn() === 'w' ? 'Brancas' : 'Pretas';
