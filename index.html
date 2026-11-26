@@ -3,88 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <title>Meu Tabuleiro de Xadrez</title>
+  <!-- Estilos oficiais do Chessground (Tabuleiro, Peças cburnett e Setas) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.base.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.brown.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.cburnett.css">
   <style>
     body {
       background-color: #161512;
-      color: #d4d4d4;
+      color: #bababa;
       font-family: system-ui, -apple-system, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
+      height: 100vh;
       margin: 0;
     }
-
-    .board-container {
-      position: relative;
+    #tabuleiro, cg-wrap {
       width: 480px;
       height: 480px;
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65);
-      user-select: none;
+      display: block;
     }
-
-    .board {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      grid-template-rows: repeat(8, 1fr);
-      width: 100%;
-      height: 100%;
+    #tabuleiro {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
     }
-
-    .square {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      position: relative;
-    }
-
-    .square svg.piece {
-      width: 82%;
-      height: 82%;
-      pointer-events: none;
-      filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
-    }
-
-    .light {
-      background-color: #f0d9b5;
-    }
-
-    .dark {
-      background-color: #b58863;
-    }
-
-    .selected {
-      box-shadow: inset 0 0 0 3px rgba(20, 120, 220, 0.85);
-    }
-
-    .legal-move::after {
-      content: "";
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background-color: rgba(20, 83, 45, 0.48);
-      pointer-events: none;
-      z-index: 2;
-    }
-
-    svg.overlay {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 5;
-    }
-
     .painel {
       margin-top: 16px;
       display: flex;
       gap: 12px;
       align-items: center;
     }
-
     button {
       background-color: #363431;
       color: #fff;
@@ -94,11 +42,9 @@
       cursor: pointer;
       font-size: 14px;
     }
-
     button:hover {
       background-color: #4a4743;
     }
-
     #status {
       font-weight: bold;
       min-width: 180px;
@@ -108,273 +54,90 @@
 </head>
 <body>
 
-  <div class="board-container" id="container">
-    <div class="board" id="board"></div>
-    <svg class="overlay" id="overlay" viewBox="0 0 800 800"></svg>
-  </div>
+  <div id="tabuleiro" class="brown cburnett"></div>
 
   <div class="painel">
     <button onclick="reiniciarJogo()">Nova Partida</button>
-    <button onclick="inverterLado()">Inverter Lado (X)</button>
+    <button onclick="inverterTabuleiro()">Inverter Lado (X)</button>
     <span id="status">Vez das Brancas</span>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-  <script>
+  <script type="module">
+    import { Chessground } from 'https://cdn.jsdelivr.net/npm/chessground@9.2.1/+esm';
+    import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.0.0-beta.8/+esm';
+
     const jogo = new Chess();
-    const boardEl = document.getElementById("board");
-    const overlayEl = document.getElementById("overlay");
-    const statusEl = document.getElementById("status");
+    const statusEl = document.getElementById('status');
 
-    let flipped = false;
-    let casaSelecionada = null;
-    let inicioDireito = null;
-    let desenhos = [];
-
-    // Peças em SVG limpo para visual uniforme em qualquer tela
-    function svgPeca(color, type) {
-      const fill = color === "w" ? "#ffffff" : "#2b2b2b";
-      const stroke = color === "w" ? "#1c1c1c" : "#0a0a0a";
-      const innerStroke = color === "w" ? "#1c1c1c" : "#dcdcdc";
-
-      const corpos = {
-        p: `
-          <circle cx="50" cy="34" r="13" fill="${fill}" stroke="${stroke}" stroke-width="3.5"/>
-          <path d="M33 76 C35 58, 41 50, 50 48 C59 50, 65 58, 67 76 Z" fill="${fill}" stroke="${stroke}" stroke-width="3.5" stroke-linejoin="round"/>
-          <rect x="25" y="76" width="50" height="8" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="3.5"/>
-        `,
-        r: `
-          <path d="M28 24 H36 V32 H46 V24 H54 V32 H64 V24 H72 V40 L65 45 L67 76 H33 L35 45 L28 40 Z" fill="${fill}" stroke="${stroke}" stroke-width="3.5" stroke-linejoin="round"/>
-          <rect x="25" y="76" width="50" height="8" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="3.5"/>
-        `,
-        n: `
-          <path d="M32 76 C33 56, 40 45, 50 38 L42 35 L33 42 C28 45, 24 40, 28 34 L44 20 C54 15, 68 22, 70 36 C72 50, 66 63, 66 76 Z" fill="${fill}" stroke="${stroke}" stroke-width="3.5" stroke-linejoin="round"/>
-          <circle cx="47" cy="27" r="2.5" fill="${innerStroke}"/>
-          <rect x="25" y="76" width="50" height="8" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="3.5"/>
-        `,
-        b: `
-          <circle cx="50" cy="17" r="5" fill="${fill}" stroke="${stroke}" stroke-width="3"/>
-          <path d="M50 24 C35 34, 32 54, 38 76 H62 C68 54, 65 34, 50 24 Z" fill="${fill}" stroke="${stroke}" stroke-width="3.5" stroke-linejoin="round"/>
-          <line x1="42" y1="45" x2="58" y2="57" stroke="${innerStroke}" stroke-width="3" stroke-linecap="round"/>
-          <rect x="25" y="76" width="50" height="8" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="3.5"/>
-        `,
-        q: `
-          <circle cx="22" cy="30" r="4.5" fill="${fill}" stroke="${stroke}" stroke-width="2.8"/>
-          <circle cx="36" cy="22" r="4.5" fill="${fill}" stroke="${stroke}" stroke-width="2.8"/>
-          <circle cx="50" cy="19" r="5" fill="${fill}" stroke="${stroke}" stroke-width="2.8"/>
-          <circle cx="64" cy="22" r="4.5" fill="${fill}" stroke="${stroke}" stroke-width="2.8"/>
-          <circle cx="78" cy="30" r="4.5" fill="${fill}" stroke="${stroke}" stroke-width="2.8"/>
-          <path d="M23 34 L34 76 H66 L77 34 L63 52 L50 25 L37 52 Z" fill="${fill}" stroke="${stroke}" stroke-width="3.5" stroke-linejoin="round"/>
-          <rect x="25" y="76" width="50" height="8" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="3.5"/>
-        `,
-        k: `
-          <line x1="50" y1="11" x2="50" y2="27" stroke="${stroke}" stroke-width="4" stroke-linecap="round"/>
-          <line x1="43" y1="18" x2="57" y2="18" stroke="${stroke}" stroke-width="4" stroke-linecap="round"/>
-          <path d="M34 76 L31 44 C31 35, 41 31, 50 35 C59 31, 69 35, 69 44 L66 76 Z" fill="${fill}" stroke="${stroke}" stroke-width="3.5" stroke-linejoin="round"/>
-          <rect x="25" y="76" width="50" height="8" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="3.5"/>
-        `
-      };
-
-      return `<svg class="piece" viewBox="0 0 100 100" aria-hidden="true">${corpos[type]}</svg>`;
-    }
-
-    function obterCorMarcacao(e) {
-      if (e.shiftKey && e.altKey) return "rgba(214, 160, 12, 0.78)";
-      if (e.shiftKey) return "rgba(215, 48, 39, 0.78)";
-      if (e.altKey) return "rgba(38, 115, 225, 0.78)";
-      return "rgba(28, 155, 68, 0.78)";
-    }
-
-    function casaParaCentro(sq) {
-      const arquivos = "abcdefgh";
-      const fileIdx = arquivos.indexOf(sq[0]);
-      const rankIdx = parseInt(sq[1], 10) - 1;
-      const col = flipped ? 7 - fileIdx : fileIdx;
-      const row = flipped ? rankIdx : 7 - rankIdx;
-      return { x: col * 100 + 50, y: row * 100 + 50 };
-    }
-
-    // Desenha setas e círculos com proporção mais limpa sobre o grid de 800x800
-    function renderizarDesenhos() {
-      let html = "";
-
-      for (const item of desenhos) {
-        const p1 = casaParaCentro(item.from);
-
-        if (item.from === item.to) {
-          html += `
-            <circle
-              cx="${p1.x}"
-              cy="${p1.y}"
-              r="41"
-              fill="none"
-              stroke="${item.cor}"
-              stroke-width="7"
-              opacity="0.92"
-            />
-          `;
-        } else {
-          const p2 = casaParaCentro(item.to);
-          const dx = p2.x - p1.x;
-          const dy = p2.y - p1.y;
-          const dist = Math.hypot(dx, dy) || 1;
-          const ux = dx / dist;
-          const uy = dy / dist;
-          const nx = -uy;
-          const ny = ux;
-
-          // Começa levemente afastado do centro e recua a ponta da haste para a cabeça da seta
-          const startX = p1.x + ux * 18;
-          const startY = p1.y + uy * 18;
-          const headLen = 30;
-          const headHalfWidth = 17;
-          const tipX = p2.x - ux * 6;
-          const tipY = p2.y - uy * 6;
-          const baseX = tipX - ux * headLen;
-          const baseY = tipY - uy * headLen;
-          const shaftEndX = tipX - ux * (headLen * 0.72);
-          const shaftEndY = tipY - uy * (headLen * 0.72);
-
-          const leftX = baseX + nx * headHalfWidth;
-          const leftY = baseY + ny * headHalfWidth;
-          const rightX = baseX - nx * headHalfWidth;
-          const rightY = baseY - ny * headHalfWidth;
-
-          html += `
-            <g opacity="0.92">
-              <line
-                x1="${startX}"
-                y1="${startY}"
-                x2="${shaftEndX}"
-                y2="${shaftEndY}"
-                stroke="${item.cor}"
-                stroke-width="13"
-                stroke-linecap="round"
-              />
-              <polygon
-                points="${tipX},${tipY} ${leftX},${leftY} ${rightX},${rightY}"
-                fill="${item.cor}"
-              />
-            </g>
-          `;
+    function obterLancesLegais() {
+      const dests = new Map();
+      jogo.SQUARES.forEach(casa => {
+        const lances = jogo.moves({ square: casa, verbose: true });
+        if (lances.length) {
+          dests.set(casa, lances.map(l => l.to));
         }
-      }
-
-      overlayEl.innerHTML = html;
+      });
+      return dests;
     }
 
     function atualizarStatus() {
-      if (jogo.in_checkmate()) {
-        statusEl.textContent = `Xeque-mate! Vitória das ${jogo.turn() === "w" ? "Pretas" : "Brancas"}.`;
-      } else if (jogo.in_draw()) {
-        statusEl.textContent = "Empate!";
+      if (jogo.isCheckmate()) {
+        statusEl.textContent = `Xeque-mate! Vitória das ${jogo.turn() === 'w' ? 'Pretas' : 'Brancas'}.`;
+      } else if (jogo.isDraw()) {
+        statusEl.textContent = 'Empate!';
       } else {
-        const vez = jogo.turn() === "w" ? "Brancas" : "Pretas";
-        statusEl.textContent = `Vez das ${vez}${jogo.in_check() ? " (Xeque!)" : ""}`;
+        const vez = jogo.turn() === 'w' ? 'Brancas' : 'Pretas';
+        statusEl.textContent = `Vez das ${vez}${jogo.inCheck() ? ' (Xeque!)' : ''}`;
       }
     }
 
-    function renderizarTabuleiro() {
-      boardEl.innerHTML = "";
-      const arquivos = "abcdefgh";
-      const ranks = flipped ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
-      const files = flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
-
-      const destinosLegais = casaSelecionada
-        ? jogo.moves({ square: casaSelecionada, verbose: true }).map(m => m.to)
-        : [];
-
-      ranks.forEach((rank, rIdx) => {
-        files.forEach((fIdx, cIdx) => {
-          const sq = `${arquivos[fIdx]}${rank}`;
-          const div = document.createElement("div");
-          const isLight = (rIdx + cIdx) % 2 === 0;
-          div.className = `square ${isLight ? "light" : "dark"}`;
-
-          if (sq === casaSelecionada) {
-            div.classList.add("selected");
-          }
-          if (destinosLegais.includes(sq)) {
-            div.classList.add("legal-move");
-          }
-
-          const piece = jogo.get(sq);
-          if (piece) {
-            div.innerHTML = svgPeca(piece.color, piece.type);
-          }
-
-          div.addEventListener("mousedown", (e) => {
-            if (e.button === 2) {
-              inicioDireito = { sq, event: e };
-              return;
-            }
-
-            if (e.button === 0) {
-              desenhos = [];
-              renderizarDesenhos();
-
-              if (casaSelecionada && destinosLegais.includes(sq)) {
-                jogo.move({ from: casaSelecionada, to: sq, promotion: "q" });
-                casaSelecionada = null;
-                atualizarStatus();
-                renderizarTabuleiro();
-                return;
-              }
-
-              if (piece && piece.color === jogo.turn()) {
-                casaSelecionada = casaSelecionada === sq ? null : sq;
-              } else {
-                casaSelecionada = null;
-              }
-              renderizarTabuleiro();
+    const cg = Chessground(document.getElementById('tabuleiro'), {
+      movable: {
+        color: 'both',
+        free: false,
+        dests: obterLancesLegais()
+      },
+      drawable: {
+        enabled: true,
+        visible: true
+      },
+      events: {
+        move: (orig, dest) => {
+          jogo.move({ from: orig, to: dest, promotion: 'q' });
+          cg.set({
+            fen: jogo.fen(),
+            turnColor: jogo.turn() === 'w' ? 'white' : 'black',
+            check: jogo.inCheck(),
+            movable: {
+              dests: obterLancesLegais()
             }
           });
-
-          div.addEventListener("mouseup", (e) => {
-            if (e.button === 2 && inicioDireito) {
-              const cor = obterCorMarcacao(inicioDireito.event);
-              const novoItem = { from: inicioDireito.sq, to: sq, cor };
-              const existe = desenhos.findIndex(
-                d => d.from === novoItem.from && d.to === novoItem.to && d.cor === novoItem.cor
-              );
-              if (existe >= 0) {
-                desenhos.splice(existe, 1);
-              } else {
-                desenhos.push(novoItem);
-              }
-              inicioDireito = null;
-              renderizarDesenhos();
-            }
-          });
-
-          boardEl.appendChild(div);
-        });
-      });
-
-      renderizarDesenhos();
-    }
-
-    boardEl.addEventListener("contextmenu", (e) => e.preventDefault());
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key.toLowerCase() === "x") inverterLado();
+          atualizarStatus();
+        }
+      }
     });
 
-    function reiniciarJogo() {
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'x') cg.toggleOrientation();
+    });
+
+    window.reiniciarJogo = () => {
       jogo.reset();
-      casaSelecionada = null;
-      desenhos = [];
+      cg.set({
+        fen: jogo.fen(),
+        turnColor: 'white',
+        check: false,
+        lastMove: undefined,
+        drawable: { shapes: [] },
+        movable: { dests: obterLancesLegais() }
+      });
       atualizarStatus();
-      renderizarTabuleiro();
-    }
+    };
 
-    function inverterLado() {
-      flipped = !flipped;
-      renderizarTabuleiro();
-    }
-
-    atualizarStatus();
-    renderizarTabuleiro();
+    window.inverterTabuleiro = () => {
+      cg.toggleOrientation();
+    };
   </script>
+
 </body>
 </html>
