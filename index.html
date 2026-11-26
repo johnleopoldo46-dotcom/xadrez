@@ -71,12 +71,16 @@
 
     function obterLancesLegais() {
       const dests = new Map();
-      jogo.SQUARES.forEach(casa => {
-        const lances = jogo.moves({ square: casa, verbose: true });
-        if (lances.length) {
-          dests.set(casa, lances.map(l => l.to));
+      const colunas = 'abcdefgh';
+      for (let c = 0; c < 8; c++) {
+        for (let l = 1; l <= 8; l++) {
+          const casa = `${colunas[c]}${l}`;
+          const lances = jogo.moves({ square: casa, verbose: true });
+          if (lances.length) {
+            dests.set(casa, lances.map(l => l.to));
+          }
         }
-      });
+      }
       return dests;
     }
 
