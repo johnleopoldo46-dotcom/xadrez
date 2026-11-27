@@ -18,7 +18,23 @@
       justify-content: center;
       min-height: 100vh;
       margin: 0;
+      padding: 16px;
+      box-sizing: border-box;
       user-select: none;
+    }
+
+    .layout-principal {
+      display: flex;
+      gap: 18px;
+      align-items: stretch;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .coluna-tabuleiro {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .barra-jogador {
@@ -35,12 +51,14 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      min-width: 0;
     }
 
     .nome-lado {
       font-size: 13px;
       font-weight: 600;
       color: #d6d3ce;
+      white-space: nowrap;
     }
 
     .lista-capturas {
@@ -61,6 +79,35 @@
       font-weight: bold;
       color: #a3a09b;
       margin-left: 8px;
+    }
+
+    .relogio-jogador {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: #9e9a92;
+      background-color: #211f1c;
+      border: 1px solid #36332f;
+      border-radius: 4px;
+      padding: 2px 8px;
+      min-width: 54px;
+      text-align: center;
+      transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .relogio-jogador.ativo {
+      background-color: #36332e;
+      color: #ffffff;
+      border-color: #696359;
+    }
+
+    .relogio-jogador.baixo {
+      color: #ff7b7b;
+      border-color: #8f3a3a;
+    }
+
+    .relogio-jogador.oculto {
+      display: none;
     }
 
     .container-tabuleiro {
@@ -132,71 +179,457 @@
       height: 56px;
     }
 
-    .painel {
-      margin-top: 12px;
+    /* Painel lateral direito (Abertura + Modo/Nível/Tempo + Lista de Lances + Controles) */
+    .painel-lateral {
+      width: 280px;
+      height: 480px;
+      margin-top: 30px;
+      background-color: #211f1c;
+      border: 1px solid #36332f;
+      border-radius: 4px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.55);
       display: flex;
-      gap: 10px;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .cabecalho-abertura {
+      background-color: #292622;
+      border-bottom: 1px solid #383530;
+      padding: 10px 12px;
+      min-height: 46px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .eco-abertura {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      color: #8f8b84;
+      text-transform: uppercase;
+    }
+
+    .nome-abertura {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e4e1dc;
+      line-height: 1.25;
+    }
+
+    /* Barra de configuração do modo, dificuldade e tempo */
+    .barra-bot {
+      background-color: #1c1a17;
+      border-bottom: 1px solid #322f2b;
+      padding: 7px 10px;
+      display: flex;
+      gap: 6px 8px;
       align-items: center;
+      justify-content: space-between;
       flex-wrap: wrap;
+    }
+
+    .grupo-controle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .rotulo-controle {
+      font-size: 11px;
+      font-weight: 600;
+      color: #9e9a92;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .rotulo-controle svg {
+      width: 13px;
+      height: 13px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .select-modo {
+      background-color: #2e2b27;
+      color: #e4e1dc;
+      border: 1px solid #44403a;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .select-modo:hover:not(:disabled) {
+      border-color: #5c574f;
+    }
+
+    .select-modo:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    #select-adversario {
+      width: 116px;
+    }
+
+    #select-dificuldade {
+      width: 72px;
+    }
+
+    #select-tempo {
+      width: 96px;
+    }
+
+    .lista-lances-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+
+    .lista-lances-container::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .lista-lances-container::-webkit-scrollbar-thumb {
+      background: #3d3a35;
+      border-radius: 3px;
+    }
+
+    .vazio-lances {
+      padding: 24px 14px;
+      text-align: center;
+      font-size: 12px;
+      color: #77736d;
+    }
+
+    .linha-lance {
+      display: grid;
+      grid-template-columns: 38px 1fr 1fr;
+      align-items: center;
+      font-size: 13px;
+      padding: 2px 8px;
+    }
+
+    .linha-lance:nth-child(even) {
+      background-color: #252320;
+    }
+
+    .num-lance {
+      color: #77736d;
+      font-size: 12px;
+      padding-left: 4px;
+    }
+
+    .celula-lance {
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      color: #d0cdc7;
+      font-weight: 500;
+      transition: background 0.12s, color 0.12s;
+    }
+
+    .celula-lance:hover {
+      background-color: #36332e;
+      color: #fff;
+    }
+
+    .celula-lance.ativo {
+      background-color: #4a453d;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .rodape-lateral {
+      border-top: 1px solid #36332f;
+      background-color: #262421;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .barra-historico {
+      display: flex;
+      gap: 5px;
+      align-items: center;
       justify-content: center;
     }
 
-    button {
-      background-color: #363431;
-      color: #fff;
-      border: 1px solid #4a4743;
-      padding: 7px 14px;
+    .btn-nav {
+      background-color: #312e2a;
+      color: #c7c4be;
+      border: 1px solid #433f3a;
+      padding: 4px 11px;
       border-radius: 4px;
       cursor: pointer;
       font-size: 13px;
+      line-height: 1.2;
+      transition: background 0.15s, color 0.15s;
     }
 
-    button:hover {
+    .btn-nav:hover:not(:disabled) {
+      background-color: #45413c;
+      color: #fff;
+    }
+
+    .btn-nav:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    .contador-lance {
+      font-size: 12px;
+      color: #9b9790;
+      min-width: 68px;
+      text-align: center;
+    }
+
+    .botoes-acao {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button.btn-acao {
+      flex: 1;
+      background-color: #3b4a3b;
+      color: #eef2ee;
+      border: 1px solid #4f634f;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      white-space: nowrap;
+      transition: background-color 0.15s, border-color 0.15s;
+    }
+
+    button.btn-acao:hover {
+      background-color: #495c49;
+      border-color: #607860;
+    }
+
+    button.btn-icone {
+      width: 32px;
+      height: 30px;
+      background-color: #363431;
+      color: #e4e1dc;
+      border: 1px solid #4a4743;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      transition: transform 0.12s, background-color 0.15s, color 0.15s;
+    }
+
+    button.btn-icone:hover {
       background-color: #4a4743;
+      color: #fff;
+    }
+
+    button.btn-icone:active {
+      transform: scale(0.95);
+    }
+
+    button.btn-icone svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    button.btn-desistir {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: #c93b3b;
+      border: 1px solid #e05353;
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+      transition: transform 0.12s, background-color 0.15s, opacity 0.15s;
+    }
+
+    button.btn-desistir:hover:not(:disabled) {
+      background-color: #de4545;
+      transform: scale(1.07);
+    }
+
+    button.btn-desistir:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    button.btn-desistir:disabled {
+      opacity: 0.38;
+      cursor: default;
+      transform: none;
+    }
+
+    button.btn-desistir svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
     }
 
     #status {
       font-weight: bold;
-      min-width: 175px;
       text-align: center;
-      font-size: 14px;
+      font-size: 13px;
+      color: #e0ddd7;
+      padding: 2px 0;
+    }
+
+    @media (max-width: 810px) {
+      .painel-lateral {
+        margin-top: 8px;
+        width: 480px;
+        height: 280px;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- Barra superior (Pretas por padrão) -->
-  <div class="barra-jogador" id="barra-topo">
-    <div class="info-lado">
-      <span class="nome-lado" id="nome-topo">Pretas</span>
-      <div class="lista-capturas" id="capturas-topo"></div>
-      <span class="vantagem" id="vantagem-topo"></span>
+  <div class="layout-principal">
+    <!-- Coluna Esquerda: Jogadores + Tabuleiro -->
+    <div class="coluna-tabuleiro">
+      <!-- Barra superior (Pretas por padrão) -->
+      <div class="barra-jogador" id="barra-topo">
+        <div class="info-lado">
+          <span class="nome-lado" id="nome-topo">Pretas</span>
+          <div class="lista-capturas" id="capturas-topo"></div>
+          <span class="vantagem" id="vantagem-topo"></span>
+        </div>
+        <span class="relogio-jogador oculto" id="relogio-topo">05:00</span>
+      </div>
+
+      <div class="container-tabuleiro">
+        <div id="tabuleiro" class="brown cburnett"></div>
+
+        <!-- Janela de escolha de promoção -->
+        <div id="modal-promocao">
+          <div class="caixa-promocao" id="opcoes-promocao"></div>
+        </div>
+      </div>
+
+      <!-- Barra inferior (Brancas por padrão) -->
+      <div class="barra-jogador" id="barra-base">
+        <div class="info-lado">
+          <span class="nome-lado" id="nome-base">Brancas</span>
+          <div class="lista-capturas" id="capturas-base"></div>
+          <span class="vantagem" id="vantagem-base"></span>
+        </div>
+        <span class="relogio-jogador oculto" id="relogio-base">05:00</span>
+      </div>
     </div>
-  </div>
 
-  <div class="container-tabuleiro">
-    <div id="tabuleiro" class="brown cburnett"></div>
+    <!-- Coluna Direita: Abertura + Modo/Nível/Tempo + Lista de Lances + Controles -->
+    <div class="painel-lateral">
+      <div class="cabecalho-abertura">
+        <span class="eco-abertura" id="eco-abertura">Posição Inicial</span>
+        <span class="nome-abertura" id="nome-abertura">Aguardando primeiro lance</span>
+      </div>
 
-    <!-- Janela de escolha de promoção -->
-    <div id="modal-promocao">
-      <div class="caixa-promocao" id="opcoes-promocao"></div>
+      <div class="barra-bot">
+        <div class="grupo-controle">
+          <label for="select-adversario" class="rotulo-controle">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4" y="7" width="16" height="12" rx="2"/>
+              <path d="M12 3v4"/>
+              <circle cx="9" cy="13" r="1.2"/>
+              <circle cx="15" cy="13" r="1.2"/>
+            </svg>
+            Modo:
+          </label>
+          <select id="select-adversario" class="select-modo" title="Modo de jogo">
+            <option value="humano">2 Jogadores</option>
+            <option value="bot-pretas">Brancas vs Bot</option>
+            <option value="bot-brancas">Pretas vs Bot</option>
+          </select>
+        </div>
+
+        <div class="grupo-controle" id="grupo-dificuldade">
+          <label for="select-dificuldade" class="rotulo-controle">Nível:</label>
+          <select id="select-dificuldade" class="select-modo" title="Dificuldade do Stockfish" disabled>
+            <option value="facil">Fácil</option>
+            <option value="medio" selected>Médio</option>
+            <option value="dificil">Difícil</option>
+          </select>
+        </div>
+
+        <div class="grupo-controle" id="grupo-tempo">
+          <label for="select-tempo" class="rotulo-controle">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 3h12"/>
+              <path d="M6 21h12"/>
+              <path d="M8 3v3c0 3.2 4 4.5 4 6s-4 2.8-4 6v3"/>
+              <path d="M16 3v3c0 3.2-4 4.5-4 6s4 2.8 4 6v3"/>
+            </svg>
+            Tempo:
+          </label>
+          <select id="select-tempo" class="select-modo" title="Controle de tempo">
+            <option value="0" selected>Sem tempo</option>
+            <option value="60">1 min</option>
+            <option value="300">5 min</option>
+            <option value="600">10 min</option>
+            <option value="1800">30 min</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="lista-lances-container" id="lista-lances-container">
+        <div class="vazio-lances">Os lances da partida aparecerão aqui.</div>
+      </div>
+
+      <div class="rodape-lateral">
+        <div id="status">Vez das Brancas</div>
+
+        <div class="barra-historico">
+          <button class="btn-nav" id="btn-inicio" onclick="irParaIndice(0)" title="Início (↑)">|&lt;</button>
+          <button class="btn-nav" id="btn-voltar" onclick="irParaIndice(indiceVisual - 1)" title="Lance anterior (←)">&lsaquo;</button>
+          <span class="contador-lance" id="contador-lance">Início</span>
+          <button class="btn-nav" id="btn-avancar" onclick="irParaIndice(indiceVisual + 1)" title="Próximo lance (→)">&rsaquo;</button>
+          <button class="btn-nav" id="btn-fim" onclick="irParaIndice(lancesHistorico.length)" title="Lance atual (↓)">&gt;|</button>
+        </div>
+
+        <div class="botoes-acao">
+          <button class="btn-acao" onclick="reiniciarJogo()">Nova Partida</button>
+          <button class="btn-icone" onclick="inverterTabuleiro()" title="Inverter lado (X)" aria-label="Inverter lado">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 7h11l-3-3"/>
+              <path d="M18 7l-3 3"/>
+              <path d="M17 17H6l3 3"/>
+              <path d="M6 17l3-3"/>
+            </svg>
+          </button>
+          <button class="btn-desistir" id="btn-desistir" onclick="desistirPartida()" title="Desistir da partida (D)" aria-label="Desistir da partida">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 3a1 1 0 0 1 1 1v1h12.2c.75 0 1.18.85.74 1.46L16.2 10.2l2.74 3.74c.44.61.01 1.46-.74 1.46H6v6a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-
-  <!-- Barra inferior (Brancas por padrão) -->
-  <div class="barra-jogador" id="barra-base">
-    <div class="info-lado">
-      <span class="nome-lado" id="nome-base">Brancas</span>
-      <div class="lista-capturas" id="capturas-base"></div>
-      <span class="vantagem" id="vantagem-base"></span>
-    </div>
-  </div>
-
-  <div class="painel">
-    <button onclick="reiniciarJogo()">Nova Partida</button>
-    <button onclick="desfazerLance()">Desfazer Lance</button>
-    <button onclick="inverterTabuleiro()">Inverter Lado (X)</button>
-    <span id="status">Vez das Brancas</span>
   </div>
 
   <script type="module">
@@ -207,9 +640,425 @@
     const statusEl = document.getElementById('status');
     const modalPromocao = document.getElementById('modal-promocao');
     const opcoesPromocao = document.getElementById('opcoes-promocao');
+    const contadorLanceEl = document.getElementById('contador-lance');
+    const listaLancesEl = document.getElementById('lista-lances-container');
+    const ecoEl = document.getElementById('eco-abertura');
+    const nomeAberturaEl = document.getElementById('nome-abertura');
+    const btnDesistir = document.getElementById('btn-desistir');
+    const selectAdversario = document.getElementById('select-adversario');
+    const selectDificuldade = document.getElementById('select-dificuldade');
+    const selectTempo = document.getElementById('select-tempo');
+    const relogioTopoEl = document.getElementById('relogio-topo');
+    const relogioBaseEl = document.getElementById('relogio-base');
 
     const baseSom = 'https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard';
     const basePeca = 'https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/cburnett';
+
+    const ABERTURAS = [
+      { seq: 'e4', eco: 'B00', nome: 'Abertura do Peão do Rei' },
+      { seq: 'e4 e5', eco: 'C20', nome: 'Jogo Aberto (1. e4 e5)' },
+      { seq: 'e4 e5 Nf3', eco: 'C40', nome: 'Abertura do Cavalo do Rei' },
+      { seq: 'e4 e5 Nf3 Nc6', eco: 'C44', nome: 'Jogo Aberto: 2...Cc6' },
+      { seq: 'e4 e5 Nf3 Nc6 Bc4', eco: 'C50', nome: 'Abertura Italiana' },
+      { seq: 'e4 e5 Nf3 Nc6 Bc4 Bc5', eco: 'C50', nome: 'Giuoco Piano' },
+      { seq: 'e4 e5 Nf3 Nc6 Bc4 Bc5 c3', eco: 'C53', nome: 'Giuoco Piano: Variante Principal' },
+      { seq: 'e4 e5 Nf3 Nc6 Bc4 Bc5 d3', eco: 'C50', nome: 'Giuoco Pianissimo' },
+      { seq: 'e4 e5 Nf3 Nc6 Bc4 Bc5 O-O', eco: 'C50', nome: 'Giuoco Pianissimo' },
+      { seq: 'e4 e5 Nf3 Nc6 Bc4 Bc5 b4', eco: 'C51', nome: 'Gambito Evans' },
+      { seq: 'e4 e5 Nf3 Nc6 Bc4 Nf6', eco: 'C55', nome: 'Defesa dos Dois Cavalos' },
+      { seq: 'e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5', eco: 'C57', nome: 'Defesa dos Dois Cavalos: Ataque Fegatello / Traxler' },
+      { seq: 'e4 e5 Nf3 Nc6 Bb5', eco: 'C60', nome: 'Ruy Lopez (Abertura Espanhola)' },
+      { seq: 'e4 e5 Nf3 Nc6 Bb5 a6', eco: 'C68', nome: 'Ruy Lopez: Defesa Morphy' },
+      { seq: 'e4 e5 Nf3 Nc6 Bb5 Nf6', eco: 'C65', nome: 'Ruy Lopez: Defesa Berlim' },
+      { seq: 'e4 e5 Nf3 Nc6 d4', eco: 'C44', nome: 'Abertura Escocesa' },
+      { seq: 'e4 e5 Nf3 Nc6 Nc3', eco: 'C46', nome: 'Abertura dos Três Cavalos' },
+      { seq: 'e4 e5 Nf3 Nc6 Nc3 Nf6', eco: 'C47', nome: 'Abertura dos Quatro Cavalos' },
+      { seq: 'e4 e5 Nf3 Nf6', eco: 'C42', nome: 'Defesa Petrov (Russa)' },
+      { seq: 'e4 e5 Nf3 d6', eco: 'C41', nome: 'Defesa Philidor' },
+      { seq: 'e4 e5 Nf3 f5', eco: 'C40', nome: 'Gambito Letão' },
+      { seq: 'e4 e5 f4', eco: 'C30', nome: 'Gambito do Rei' },
+      { seq: 'e4 e5 f4 exf4', eco: 'C33', nome: 'Gambito do Rei Aceito' },
+      { seq: 'e4 e5 f4 Bc5', eco: 'C30', nome: 'Gambito do Rei Recusado (Clássico)' },
+      { seq: 'e4 e5 f4 d5', eco: 'C31', nome: 'Contragambito Falkbeer' },
+      { seq: 'e4 e5 Bc4', eco: 'C23', nome: 'Abertura do Bispo' },
+      { seq: 'e4 e5 Nc3', eco: 'C25', nome: 'Abertura Vienense' },
+      { seq: 'e4 e5 d4', eco: 'C21', nome: 'Abertura do Centro' },
+      { seq: 'e4 e5 d4 exd4 c3', eco: 'C21', nome: 'Gambito Dinamarquês' },
+
+      { seq: 'e4 c6', eco: 'B10', nome: 'Defesa Caro-Kann' },
+      { seq: 'e4 c6 d4 d5', eco: 'B12', nome: 'Defesa Caro-Kann: Variante Principal' },
+      { seq: 'e4 c6 d4 d5 e5', eco: 'B12', nome: 'Defesa Caro-Kann: Variante do Avanço' },
+      { seq: 'e4 c6 d4 d5 exd5 cxd5', eco: 'B13', nome: 'Defesa Caro-Kann: Variante das Trocas' },
+      { seq: 'e4 c6 d4 d5 Nc3', eco: 'B15', nome: 'Defesa Caro-Kann: Variante Clássica / Tartakower' },
+      { seq: 'e4 c6 d4 d5 Nd2', eco: 'B12', nome: 'Defesa Caro-Kann: Variante Moderna' },
+
+      { seq: 'e4 c5', eco: 'B20', nome: 'Defesa Siciliana' },
+      { seq: 'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6', eco: 'B90', nome: 'Defesa Siciliana: Variante Najdorf' },
+      { seq: 'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6', eco: 'B70', nome: 'Defesa Siciliana: Variante do Dragão' },
+      { seq: 'e4 c5 c3', eco: 'B22', nome: 'Defesa Siciliana: Variante Alapin' },
+      { seq: 'e4 e6', eco: 'C00', nome: 'Defesa Francesa' },
+      { seq: 'e4 e6 d4 d5', eco: 'C01', nome: 'Defesa Francesa: Linha Principal' },
+      { seq: 'e4 e6 d4 d5 e5', eco: 'C02', nome: 'Defesa Francesa: Variante do Avanço' },
+      { seq: 'e4 e6 d4 d5 Nc3', eco: 'C03', nome: 'Defesa Francesa: Variante Clássica / Winawer' },
+      { seq: 'e4 d5', eco: 'B01', nome: 'Defesa Escandinava' },
+      { seq: 'e4 d6', eco: 'B07', nome: 'Defesa Pirc' },
+      { seq: 'e4 g6', eco: 'B06', nome: 'Defesa Moderna' },
+      { seq: 'e4 Nf6', eco: 'B02', nome: 'Defesa Alekhine' },
+
+      { seq: 'd4', eco: 'A40', nome: 'Abertura do Peão da Dama' },
+      { seq: 'd4 d5', eco: 'D00', nome: 'Jogo Fechado (1. d4 d5)' },
+      { seq: 'd4 d5 c4', eco: 'D06', nome: 'Gambito da Dama' },
+      { seq: 'd4 d5 c4 dxc4', eco: 'D20', nome: 'Gambito da Dama Aceito' },
+      { seq: 'd4 d5 c4 e6', eco: 'D30', nome: 'Gambito da Dama Recusado' },
+      { seq: 'd4 d5 c4 c6', eco: 'D10', nome: 'Defesa Eslava' },
+      { seq: 'd4 d5 c4 c6 Nf3 Nf6 Nc3', eco: 'D15', nome: 'Defesa Eslava: Variante Principal' },
+      { seq: 'd4 d5 c4 c6 cxd5 cxd5', eco: 'D13', nome: 'Defesa Eslava: Variante das Trocas' },
+      { seq: 'd4 d5 c4 c6 Nf3 Nf6 e3', eco: 'D11', nome: 'Defesa Eslava: Variante Tranquila' },
+      { seq: 'd4 d5 c4 e6 Nc3 c6', eco: 'D43', nome: 'Defesa Semi-Eslava' },
+      { seq: 'd4 d5 Bf4', eco: 'D00', nome: 'Sistema London' },
+      { seq: 'd4 Nf6', eco: 'A45', nome: 'Defesa Índia' },
+      { seq: 'd4 Nf6 c4 g6', eco: 'E60', nome: 'Defesa Índia do Rei' },
+      { seq: 'd4 Nf6 c4 e6 Nc3 Bb4', eco: 'E20', nome: 'Defesa Nimzoíndia' },
+      { seq: 'd4 Nf6 c4 e6 Nf3 b6', eco: 'E12', nome: 'Defesa Índia da Dama' },
+      { seq: 'd4 Nf6 c4 g6 Nc3 d5', eco: 'D80', nome: 'Defesa Grünfeld' },
+      { seq: 'd4 Nf6 c4 c5', eco: 'A56', nome: 'Defesa Benoni' },
+      { seq: 'd4 Nf6 c4 e5', eco: 'A51', nome: 'Gambito Budapeste' },
+      { seq: 'd4 f5', eco: 'A80', nome: 'Defesa Holandesa' },
+
+      { seq: 'c4', eco: 'A10', nome: 'Abertura Inglesa' },
+      { seq: 'Nf3', eco: 'A04', nome: 'Abertura Réti / Zukertort' },
+      { seq: 'f4', eco: 'A02', nome: 'Abertura Bird' },
+      { seq: 'b3', eco: 'A01', nome: 'Ataque Nimzowitsch-Larsen' },
+      { seq: 'g3', eco: 'A00', nome: 'Abertura Benko / Fianchetto do Rei' },
+      { seq: 'b4', eco: 'A00', nome: 'Abertura Sokolsky (Orangotango)' }
+    ];
+
+    let posicoesFen = [jogo.fen()];
+    let lancesHistorico = [];
+    let indiceVisual = 0;
+    let vencedorPorDesistencia = null;
+    let vencedorPorTempo = null;
+
+    // --- Controle do Relógio ---
+    let tempoInicialSegundos = 0;
+    let tempoRestante = { w: 0, b: 0 };
+    let relogioRodando = false;
+    let ultimoTickMs = null;
+    let intervaloRelogio = null;
+
+    function formatarTempo(segundos) {
+      const seg = Math.max(0, Math.ceil(segundos));
+      const min = Math.floor(seg / 60);
+      const rest = seg % 60;
+      return `${String(min).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
+    }
+
+    function atualizarRelogiosNaTela(instanciaVisual) {
+      const semTempo = tempoInicialSegundos <= 0;
+      relogioTopoEl.classList.toggle('oculto', semTempo);
+      relogioBaseEl.classList.toggle('oculto', semTempo);
+      if (semTempo) return;
+
+      const orientacao = cg ? cg.state.orientation : 'white';
+      const topoEhPretas = orientacao === 'white';
+      const corTopo = topoEhPretas ? 'b' : 'w';
+      const corBase = topoEhPretas ? 'w' : 'b';
+
+      const segTopo = tempoRestante[corTopo];
+      const segBase = tempoRestante[corBase];
+
+      relogioTopoEl.textContent = formatarTempo(segTopo);
+      relogioBaseEl.textContent = formatarTempo(segBase);
+
+      const partidaFinalizada = Boolean(
+        vencedorPorDesistencia ||
+        vencedorPorTempo ||
+        estaEmXequeMate(jogo) ||
+        (typeof jogo.isDraw === 'function' && jogo.isDraw())
+      );
+
+      const vezAtiva = !partidaFinalizada && relogioRodando && indiceVisual === lancesHistorico.length
+        ? instanciaVisual.turn()
+        : null;
+
+      relogioTopoEl.classList.toggle('ativo', vezAtiva === corTopo);
+      relogioBaseEl.classList.toggle('ativo', vezAtiva === corBase);
+
+      relogioTopoEl.classList.toggle('baixo', segTopo <= 20);
+      relogioBaseEl.classList.toggle('baixo', segBase <= 20);
+    }
+
+    function pararRelogio() {
+      relogioRodando = false;
+      ultimoTickMs = null;
+      if (intervaloRelogio) {
+        clearInterval(intervaloRelogio);
+        intervaloRelogio = null;
+      }
+    }
+
+    function configurarTempoInicial() {
+      pararRelogio();
+      vencedorPorTempo = null;
+      tempoInicialSegundos = Number(selectTempo.value) || 0;
+      tempoRestante = {
+        w: tempoInicialSegundos,
+        b: tempoInicialSegundos
+      };
+      atualizarRelogiosNaTela(new Chess(posicoesFen[indiceVisual]));
+    }
+
+    function iniciarOuManterRelogio() {
+      if (tempoInicialSegundos <= 0) return;
+      if (vencedorPorDesistencia || vencedorPorTempo) return;
+      if (estaEmXequeMate(jogo) || (typeof jogo.isDraw === 'function' && jogo.isDraw())) return;
+      if (lancesHistorico.length === 0) return;
+      if (indiceVisual !== lancesHistorico.length) return;
+
+      relogioRodando = true;
+      ultimoTickMs = performance.now();
+
+      if (!intervaloRelogio) {
+        intervaloRelogio = setInterval(() => {
+          if (!relogioRodando || tempoInicialSegundos <= 0) return;
+          if (vencedorPorDesistencia || vencedorPorTempo) {
+            pararRelogio();
+            return;
+          }
+          if (indiceVisual !== lancesHistorico.length) {
+            pararRelogio();
+            atualizarRelogiosNaTela(new Chess(posicoesFen[indiceVisual]));
+            return;
+          }
+
+          const agora = performance.now();
+          const deltaSeg = (agora - (ultimoTickMs || agora)) / 1000;
+          ultimoTickMs = agora;
+
+          const turno = jogo.turn();
+          tempoRestante[turno] = Math.max(0, tempoRestante[turno] - deltaSeg);
+
+          if (tempoRestante[turno] <= 0) {
+            tempoRestante[turno] = 0;
+            vencedorPorTempo = turno === 'w' ? 'b' : 'w';
+            pararRelogio();
+            cancelarCalculoBot();
+            modalPromocao.classList.remove('ativo');
+            renderizarPosicaoVisual(null);
+            reproduzirSom(sons.mover);
+            return;
+          }
+
+          atualizarRelogiosNaTela(jogo);
+        }, 100);
+      }
+    }
+
+    // --- Controle do Stockfish ---
+    let stockfishWorker = null;
+    let stockfishPronto = false;
+    let botPensando = false;
+    let idSolicitacaoBot = 0;
+    let timeoutBot = null;
+
+    const NIVEIS_BOT = {
+      facil: { skill: 1, depth: 2, movetime: 180, nome: 'Bot (Fácil)' },
+      medio: { skill: 8, depth: 7, movetime: 450, nome: 'Bot (Médio)' },
+      dificil: { skill: 20, depth: 13, movetime: 950, nome: 'Bot (Difícil)' }
+    };
+
+    function obterCorBot() {
+      const modo = selectAdversario.value;
+      if (modo === 'bot-pretas') return 'b';
+      if (modo === 'bot-brancas') return 'w';
+      return null;
+    }
+
+    async function iniciarStockfish() {
+      if (stockfishWorker) return;
+      const candidatos = [
+        'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js',
+        'https://unpkg.com/stockfish.js@10.0.2/stockfish.js'
+      ];
+
+      for (const url of candidatos) {
+        try {
+          const resp = await fetch(url);
+          if (!resp.ok) continue;
+          const codigo = await resp.text();
+          const blob = new Blob([codigo], { type: 'application/javascript' });
+          const blobUrl = URL.createObjectURL(blob);
+          const worker = new Worker(blobUrl);
+          URL.revokeObjectURL(blobUrl);
+
+          worker.onmessage = (e) => {
+            const linha = typeof e.data === 'string' ? e.data : '';
+            if (linha === 'uciok') {
+              worker.postMessage('isready');
+            } else if (linha === 'readyok') {
+              stockfishPronto = true;
+              verificarTurnoDoBot();
+            } else if (linha.startsWith('bestmove')) {
+              const partes = linha.split(/\s+/);
+              const lanceUci = partes[1];
+              aplicarLanceDoBot(lanceUci);
+            }
+          };
+
+          stockfishWorker = worker;
+          worker.postMessage('uci');
+          return;
+        } catch (_) {}
+      }
+    }
+
+    function cancelarCalculoBot() {
+      idSolicitacaoBot++;
+      if (timeoutBot) {
+        clearTimeout(timeoutBot);
+        timeoutBot = null;
+      }
+      if (stockfishWorker && botPensando) {
+        stockfishWorker.postMessage('stop');
+      }
+      botPensando = false;
+    }
+
+    function verificarTurnoDoBot() {
+      const corBot = obterCorBot();
+      if (!corBot) return;
+      if (vencedorPorDesistencia || vencedorPorTempo || estaEmXequeMate(jogo)) return;
+      if (typeof jogo.isDraw === 'function' && jogo.isDraw()) return;
+      if (indiceVisual !== lancesHistorico.length) return;
+      if (jogo.turn() !== corBot) return;
+      if (botPensando) return;
+
+      if (!stockfishWorker) {
+        iniciarStockfish();
+        atualizarStatus(jogo);
+        return;
+      }
+      if (!stockfishPronto) {
+        atualizarStatus(jogo);
+        return;
+      }
+
+      const nivel = NIVEIS_BOT[selectDificuldade.value] || NIVEIS_BOT.medio;
+      const reqId = ++idSolicitacaoBot;
+      botPensando = true;
+      atualizarStatus(jogo);
+
+      timeoutBot = setTimeout(() => {
+        if (reqId !== idSolicitacaoBot) return;
+        if (indiceVisual !== lancesHistorico.length || jogo.turn() !== corBot || vencedorPorTempo) {
+          botPensando = false;
+          atualizarStatus(jogo);
+          return;
+        }
+        const fenAtual = jogo.fen();
+        stockfishWorker.postMessage(`setoption name Skill Level value ${nivel.skill}`);
+        stockfishWorker.postMessage(`position fen ${fenAtual}`);
+        stockfishWorker.postMessage(`go depth ${nivel.depth} movetime ${nivel.movetime}`);
+      }, 240);
+    }
+
+    function aplicarLanceDoBot(lanceUci) {
+      if (!botPensando) return;
+      botPensando = false;
+
+      const corBot = obterCorBot();
+      if (!corBot || jogo.turn() !== corBot || indiceVisual !== lancesHistorico.length || vencedorPorTempo) {
+        atualizarStatus(jogo);
+        return;
+      }
+
+      if (!lanceUci || lanceUci === '(none)') {
+        atualizarStatus(jogo);
+        return;
+      }
+
+      const from = lanceUci.slice(0, 2);
+      const to = lanceUci.slice(2, 4);
+      const promotion = lanceUci.length > 4 ? lanceUci[4] : undefined;
+
+      const lance = jogo.move({ from, to, promotion });
+      if (lance) {
+        posicoesFen.push(jogo.fen());
+        lancesHistorico.push(lance);
+        indiceVisual = lancesHistorico.length;
+        renderizarPosicaoVisual(lance);
+        iniciarOuManterRelogio();
+      } else {
+        renderizarPosicaoVisual(null);
+      }
+    }
+
+    // --- Aberturas e Histórico ---
+    function detectarAbertura(ateIndice) {
+      if (ateIndice === 0) {
+        return { eco: 'Posição Inicial', nome: 'Aguardando primeiro lance' };
+      }
+      const sequenciaAtual = lancesHistorico
+        .slice(0, ateIndice)
+        .map(l => l.san)
+        .join(' ');
+
+      let melhorMatch = null;
+      for (const item of ABERTURAS) {
+        if (sequenciaAtual === item.seq || sequenciaAtual.startsWith(item.seq + ' ')) {
+          if (!melhorMatch || item.seq.length > melhorMatch.seq.length) {
+            melhorMatch = item;
+          }
+        }
+      }
+
+      if (melhorMatch) {
+        return { eco: `ECO ${melhorMatch.eco}`, nome: melhorMatch.nome };
+      }
+      return { eco: 'Abertura Irregular', nome: `1. ${lancesHistorico[0].san}` };
+    }
+
+    function atualizarPainelAbertura(ateIndice) {
+      const info = detectarAbertura(ateIndice);
+      ecoEl.textContent = info.eco;
+      nomeAberturaEl.textContent = info.nome;
+    }
+
+    function renderizarListaLances() {
+      if (lancesHistorico.length === 0) {
+        listaLancesEl.innerHTML = '<div class="vazio-lances">Os lances da partida aparecerão aqui.</div>';
+        return;
+      }
+
+      let html = '';
+      for (let i = 0; i < lancesHistorico.length; i += 2) {
+        const numRodada = Math.floor(i / 2) + 1;
+        const idxBrancas = i + 1;
+        const idxPretas = i + 2;
+        const lanceBrancas = lancesHistorico[i];
+        const lancePretas = lancesHistorico[i + 1];
+
+        const ativoBrancas = indiceVisual === idxBrancas ? ' ativo' : '';
+        const ativoPretas = indiceVisual === idxPretas ? ' ativo' : '';
+
+        html += `
+          <div class="linha-lance">
+            <span class="num-lance">${numRodada}.</span>
+            <span class="celula-lance${ativoBrancas}" data-indice="${idxBrancas}" onclick="irParaIndice(${idxBrancas})">${lanceBrancas.san}</span>
+            ${lancePretas
+              ? `<span class="celula-lance${ativoPretas}" data-indice="${idxPretas}" onclick="irParaIndice(${idxPretas})">${lancePretas.san}</span>`
+              : '<span></span>'}
+          </div>
+        `;
+      }
+
+      listaLancesEl.innerHTML = html;
+
+      const celulaAtiva = listaLancesEl.querySelector('.celula-lance.ativo');
+      if (celulaAtiva) {
+        celulaAtiva.scrollIntoView({ block: 'nearest' });
+      }
+    }
 
     function criarAudio(nomeArquivo) {
       const el = new Audio(`${baseSom}/${nomeArquivo}`);
@@ -229,21 +1078,21 @@
       copia.play().catch(() => {});
     }
 
-    function estaEmXeque() {
-      if (typeof jogo.isCheck === 'function' && jogo.isCheck()) return true;
-      if (typeof jogo.inCheck === 'function' && jogo.inCheck()) return true;
+    function estaEmXeque(instancia = jogo) {
+      if (typeof instancia.isCheck === 'function' && instancia.isCheck()) return true;
+      if (typeof instancia.inCheck === 'function' && instancia.inCheck()) return true;
 
-      if (typeof jogo.board === 'function' && typeof jogo.isAttacked === 'function') {
-        const corAtual = jogo.turn();
+      if (typeof instancia.board === 'function' && typeof instancia.isAttacked === 'function') {
+        const corAtual = instancia.turn();
         const inimigo = corAtual === 'w' ? 'b' : 'w';
         const colunas = 'abcdefgh';
-        const tabuleiro = jogo.board();
+        const tabuleiro = instancia.board();
         for (let linhaIdx = 0; linhaIdx < 8; linhaIdx++) {
           for (let colIdx = 0; colIdx < 8; colIdx++) {
             const casaObj = tabuleiro[linhaIdx][colIdx];
             if (casaObj && casaObj.type === 'k' && casaObj.color === corAtual) {
               const casaNome = `${colunas[colIdx]}${8 - linhaIdx}`;
-              return jogo.isAttacked(casaNome, inimigo);
+              return instancia.isAttacked(casaNome, inimigo);
             }
           }
         }
@@ -251,9 +1100,9 @@
       return false;
     }
 
-    function estaEmXequeMate() {
-      if (typeof jogo.isCheckmate === 'function') return jogo.isCheckmate();
-      if (typeof jogo.inCheckmate === 'function') return jogo.inCheckmate();
+    function estaEmXequeMate(instancia = jogo) {
+      if (typeof instancia.isCheckmate === 'function') return instancia.isCheckmate();
+      if (typeof instancia.inCheckmate === 'function') return instancia.inCheckmate();
       return false;
     }
 
@@ -265,13 +1114,13 @@
       reproduzirSom(sons.mover);
     }
 
-    function obterLancesLegais() {
+    function obterLancesLegais(instancia = jogo) {
       const dests = new Map();
       const colunas = 'abcdefgh';
       for (let c = 0; c < 8; c++) {
         for (let l = 1; l <= 8; l++) {
           const casa = `${colunas[c]}${l}`;
-          const lances = jogo.moves({ square: casa, verbose: true });
+          const lances = instancia.moves({ square: casa, verbose: true });
           if (lances.length) {
             dests.set(casa, lances.map(l => l.to));
           }
@@ -280,39 +1129,38 @@
       return dests;
     }
 
-    function obterUltimoLance() {
-      const historico = jogo.history({ verbose: true });
-      if (!historico.length) return undefined;
-      const ultimo = historico[historico.length - 1];
-      return [ultimo.from, ultimo.to];
+    function obterRotuloJogador(cor) {
+      const corBot = obterCorBot();
+      const base = cor === 'w' ? 'Brancas' : 'Pretas';
+      if (corBot === cor) {
+        const nivel = NIVEIS_BOT[selectDificuldade.value] || NIVEIS_BOT.medio;
+        return `${base} · ${nivel.nome}`;
+      }
+      return base;
     }
 
-    function atualizarMaterialECapturas() {
+    function atualizarMaterialECapturas(instanciaVisual, ateIndice) {
       const valores = { p: 1, n: 3, b: 3, r: 5, q: 9 };
       const ordem = { q: 1, r: 2, b: 3, n: 4, p: 5 };
       const codigosImg = { p: 'P', n: 'N', b: 'B', r: 'R', q: 'Q' };
 
-      const historico = jogo.history({ verbose: true });
-      const capturadasPelasBrancas = []; // peças pretas capturadas
-      const capturadasPelasPretas = [];  // peças brancas capturadas
+      const capturadasPelasBrancas = [];
+      const capturadasPelasPretas = [];
 
-      for (const lance of historico) {
-        if (lance.captured) {
-          if (lance.color === 'w') {
-            capturadasPelasBrancas.push(lance.captured);
-          } else {
-            capturadasPelasPretas.push(lance.captured);
-          }
+      for (let i = 0; i < ateIndice; i++) {
+        const lance = lancesHistorico[i];
+        if (lance && lance.captured) {
+          if (lance.color === 'w') capturadasPelasBrancas.push(lance.captured);
+          else capturadasPelasPretas.push(lance.captured);
         }
       }
 
       capturadasPelasBrancas.sort((a, b) => ordem[a] - ordem[b]);
       capturadasPelasPretas.sort((a, b) => ordem[a] - ordem[b]);
 
-      // Calcula vantagem material real no tabuleiro (considera promoções também)
       let pontosBrancas = 0;
       let pontosPretas = 0;
-      for (const linha of jogo.board()) {
+      for (const linha of instanciaVisual.board()) {
         for (const casa of linha) {
           if (casa && valores[casa.type]) {
             if (casa.color === 'w') pontosBrancas += valores[casa.type];
@@ -323,10 +1171,10 @@
 
       const diff = pontosBrancas - pontosPretas;
       const orientacao = cg ? cg.state.orientation : 'white';
-
       const topoEhPretas = orientacao === 'white';
-      document.getElementById('nome-topo').textContent = topoEhPretas ? 'Pretas' : 'Brancas';
-      document.getElementById('nome-base').textContent = topoEhPretas ? 'Brancas' : 'Pretas';
+
+      document.getElementById('nome-topo').textContent = obterRotuloJogador(topoEhPretas ? 'b' : 'w');
+      document.getElementById('nome-base').textContent = obterRotuloJogador(topoEhPretas ? 'w' : 'b');
 
       const listaTopo = topoEhPretas ? capturadasPelasPretas : capturadasPelasBrancas;
       const corIconeTopo = topoEhPretas ? 'w' : 'b';
@@ -355,31 +1203,104 @@
       }
     }
 
-    function atualizarStatus() {
-      if (estaEmXequeMate()) {
-        statusEl.textContent = `Xeque-mate! Vitória das ${jogo.turn() === 'w' ? 'Pretas' : 'Brancas'}.`;
-      } else if (typeof jogo.isDraw === 'function' && jogo.isDraw()) {
+    function atualizarStatus(instanciaVisual) {
+      if (vencedorPorDesistencia && indiceVisual === lancesHistorico.length) {
+        const vencedorNome = vencedorPorDesistencia === 'w' ? 'Brancas' : 'Pretas';
+        statusEl.textContent = `Vitória das ${vencedorNome} (desistência)`;
+        btnDesistir.disabled = true;
+        return;
+      }
+
+      if (vencedorPorTempo && indiceVisual === lancesHistorico.length) {
+        const vencedorNome = vencedorPorTempo === 'w' ? 'Brancas' : 'Pretas';
+        statusEl.textContent = `Vitória das ${vencedorNome} (tempo esgotado)`;
+        btnDesistir.disabled = true;
+        return;
+      }
+
+      btnDesistir.disabled = estaEmXequeMate(instanciaVisual) ||
+        (typeof instanciaVisual.isDraw === 'function' && instanciaVisual.isDraw());
+
+      if (estaEmXequeMate(instanciaVisual)) {
+        statusEl.textContent = `Xeque-mate! Vitória das ${instanciaVisual.turn() === 'w' ? 'Pretas' : 'Brancas'}.`;
+      } else if (typeof instanciaVisual.isDraw === 'function' && instanciaVisual.isDraw()) {
         statusEl.textContent = 'Empate!';
       } else {
-        const vez = jogo.turn() === 'w' ? 'Brancas' : 'Pretas';
-        statusEl.textContent = `Vez das ${vez}${estaEmXeque() ? ' (Xeque!)' : ''}`;
+        const corBot = obterCorBot();
+        const vezCor = instanciaVisual.turn();
+        const vez = vezCor === 'w' ? 'Brancas' : 'Pretas';
+        const revisando = indiceVisual < lancesHistorico.length ? ' · Histórico' : '';
+
+        if (!revisando && corBot && vezCor === corBot) {
+          statusEl.textContent = stockfishPronto ? 'Stockfish pensando...' : 'Carregando Stockfish...';
+        } else {
+          statusEl.textContent = `Vez das ${vez}${estaEmXeque(instanciaVisual) ? ' (Xeque!)' : ''}${revisando}`;
+        }
       }
     }
 
-    function sincronizarTabuleiro(lanceExecutado) {
-      const emXeque = estaEmXeque();
+    function atualizarControlesHistorico() {
+      const total = lancesHistorico.length;
+      contadorLanceEl.textContent = indiceVisual === 0
+        ? (total === 0 ? 'Início' : `0 / ${total}`)
+        : `${indiceVisual} / ${total}`;
+
+      document.getElementById('btn-inicio').disabled = indiceVisual <= 0;
+      document.getElementById('btn-voltar').disabled = indiceVisual <= 0;
+      document.getElementById('btn-avancar').disabled = indiceVisual >= total;
+      document.getElementById('btn-fim').disabled = indiceVisual >= total;
+    }
+
+    function renderizarPosicaoVisual(lanceExecutado = null) {
+      const fenVisual = posicoesFen[indiceVisual];
+      const instanciaVisual = new Chess(fenVisual);
+      const lanceAnterior = indiceVisual > 0 ? lancesHistorico[indiceVisual - 1] : null;
+      const partidaEncerrada = Boolean(
+        (vencedorPorDesistencia || vencedorPorTempo) && indiceVisual === lancesHistorico.length
+      );
+
       cg.set({
-        fen: jogo.fen(),
-        turnColor: jogo.turn() === 'w' ? 'white' : 'black',
-        check: emXeque,
-        lastMove: obterUltimoLance(),
+        fen: fenVisual,
+        turnColor: instanciaVisual.turn() === 'w' ? 'white' : 'black',
+        check: estaEmXeque(instanciaVisual),
+        lastMove: lanceAnterior ? [lanceAnterior.from, lanceAnterior.to] : undefined,
         movable: {
-          dests: obterLancesLegais()
+          color: partidaEncerrada ? false : 'both',
+          free: false,
+          dests: partidaEncerrada ? new Map() : obterLancesLegais(instanciaVisual)
         }
       });
-      atualizarStatus();
-      atualizarMaterialECapturas();
+
+      atualizarStatus(instanciaVisual);
+      atualizarMaterialECapturas(instanciaVisual, indiceVisual);
+      atualizarRelogiosNaTela(instanciaVisual);
+      atualizarPainelAbertura(indiceVisual);
+      renderizarListaLances();
+      atualizarControlesHistorico();
       if (lanceExecutado) tocarSom(lanceExecutado);
+    }
+
+    function truncarParaIndiceVisual() {
+      cancelarCalculoBot();
+      if (indiceVisual < lancesHistorico.length) {
+        posicoesFen = posicoesFen.slice(0, indiceVisual + 1);
+        lancesHistorico = lancesHistorico.slice(0, indiceVisual);
+        jogo.load(posicoesFen[indiceVisual]);
+      }
+      vencedorPorDesistencia = null;
+      vencedorPorTempo = null;
+    }
+
+    function registrarNovoLance(lance, dispararBot = true) {
+      if (!lance) return;
+      vencedorPorDesistencia = null;
+      vencedorPorTempo = null;
+      posicoesFen.push(jogo.fen());
+      lancesHistorico.push(lance);
+      indiceVisual = lancesHistorico.length;
+      renderizarPosicaoVisual(lance);
+      iniciarOuManterRelogio();
+      if (dispararBot) verificarTurnoDoBot();
     }
 
     function ehPromocao(orig, dest) {
@@ -406,7 +1327,7 @@
         btn.onclick = () => {
           modalPromocao.classList.remove('ativo');
           const lance = jogo.move({ from: orig, to: dest, promotion: p.codigo });
-          sincronizarTabuleiro(lance);
+          registrarNovoLance(lance, true);
         };
         opcoesPromocao.appendChild(btn);
       });
@@ -426,51 +1347,155 @@
       },
       events: {
         move: (orig, dest) => {
+          if (vencedorPorDesistencia || vencedorPorTempo) {
+            renderizarPosicaoVisual(null);
+            return;
+          }
+
+          if (indiceVisual < lancesHistorico.length) {
+            truncarParaIndiceVisual();
+          }
+
           if (ehPromocao(orig, dest)) {
             abrirMenuPromocao(orig, dest, jogo.turn());
             return;
           }
           const lance = jogo.move({ from: orig, to: dest });
-          sincronizarTabuleiro(lance);
+          if (!lance) {
+            renderizarPosicaoVisual(null);
+            return;
+          }
+          registrarNovoLance(lance, true);
         }
       }
     });
 
+    selectAdversario.addEventListener('change', () => {
+      selectAdversario.blur();
+      const corBot = obterCorBot();
+      selectDificuldade.disabled = !corBot;
+      cancelarCalculoBot();
+
+      if (corBot === 'w' && cg.state.orientation === 'white') {
+        cg.toggleOrientation();
+      } else if (corBot === 'b' && cg.state.orientation === 'black') {
+        cg.toggleOrientation();
+      }
+
+      if (corBot && !stockfishWorker) {
+        iniciarStockfish();
+      }
+
+      renderizarPosicaoVisual(null);
+      iniciarOuManterRelogio();
+      verificarTurnoDoBot();
+    });
+
+    selectDificuldade.addEventListener('change', () => {
+      selectDificuldade.blur();
+      renderizarPosicaoVisual(null);
+      if (botPensando) {
+        cancelarCalculoBot();
+        verificarTurnoDoBot();
+      }
+    });
+
+    selectTempo.addEventListener('change', () => {
+      selectTempo.blur();
+      configurarTempoInicial();
+      if (lancesHistorico.length > 0 && indiceVisual === lancesHistorico.length) {
+        iniciarOuManterRelogio();
+      }
+    });
+
+    window.desistirPartida = () => {
+      if (vencedorPorDesistencia || vencedorPorTempo || estaEmXequeMate(jogo)) return;
+      pararRelogio();
+      cancelarCalculoBot();
+      modalPromocao.classList.remove('ativo');
+      const corBot = obterCorBot();
+      const quemDesistiu = corBot ? (corBot === 'w' ? 'b' : 'w') : jogo.turn();
+      vencedorPorDesistencia = quemDesistiu === 'w' ? 'b' : 'w';
+      indiceVisual = lancesHistorico.length;
+      renderizarPosicaoVisual(null);
+      reproduzirSom(sons.mover);
+    };
+
+    window.irParaIndice = (novoIndice) => {
+      cancelarCalculoBot();
+      modalPromocao.classList.remove('ativo');
+      const limite = lancesHistorico.length;
+      const alvo = Math.max(0, Math.min(limite, novoIndice));
+      indiceVisual = alvo;
+      if (alvo === limite && !vencedorPorDesistencia && !vencedorPorTempo) {
+        iniciarOuManterRelogio();
+      } else {
+        pararRelogio();
+      }
+      renderizarPosicaoVisual(null);
+    };
+
     document.addEventListener('keydown', (e) => {
-      if (e.key.toLowerCase() === 'x') window.inverterTabuleiro();
+      const tag = document.activeElement ? document.activeElement.tagName : '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (tag === 'SELECT') {
+        document.activeElement.blur();
+      }
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        window.irParaIndice(indiceVisual - 1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        window.irParaIndice(indiceVisual + 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        window.irParaIndice(0);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        window.irParaIndice(lancesHistorico.length);
+      } else if (e.key.toLowerCase() === 'x') {
+        window.inverterTabuleiro();
+      } else if (e.key.toLowerCase() === 'd') {
+        window.desistirPartida();
+      }
     });
 
     window.reiniciarJogo = () => {
+      cancelarCalculoBot();
       modalPromocao.classList.remove('ativo');
       jogo.reset();
+      posicoesFen = [jogo.fen()];
+      lancesHistorico = [];
+      indiceVisual = 0;
+      vencedorPorDesistencia = null;
+      configurarTempoInicial();
       cg.set({
         fen: jogo.fen(),
         turnColor: 'white',
         check: false,
         lastMove: undefined,
         drawable: { shapes: [] },
-        movable: { dests: obterLancesLegais() }
+        movable: {
+          color: 'both',
+          dests: obterLancesLegais()
+        }
       });
-      atualizarStatus();
-      atualizarMaterialECapturas();
-    };
-
-    window.desfazerLance = () => {
-      if (modalPromocao.classList.contains('ativo')) {
-        modalPromocao.classList.remove('ativo');
-        sincronizarTabuleiro(null);
-        return;
-      }
-      const desfeito = jogo.undo();
-      if (desfeito) {
-        sincronizarTabuleiro(null);
-      }
+      atualizarStatus(jogo);
+      atualizarMaterialECapturas(jogo, 0);
+      atualizarPainelAbertura(0);
+      renderizarListaLances();
+      atualizarControlesHistorico();
+      verificarTurnoDoBot();
     };
 
     window.inverterTabuleiro = () => {
       cg.toggleOrientation();
-      atualizarMaterialECapturas();
+      renderizarPosicaoVisual(null);
     };
+
+    configurarTempoInicial();
+    atualizarControlesHistorico();
   </script>
 
 </body>
