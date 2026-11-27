@@ -39,7 +39,7 @@
 
     .barra-jogador {
       width: 480px;
-      height: 30px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -83,27 +83,32 @@
 
     .relogio-jogador {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 13px;
-      font-weight: 700;
-      color: #9e9a92;
-      background-color: #211f1c;
-      border: 1px solid #36332f;
-      border-radius: 4px;
-      padding: 2px 8px;
-      min-width: 54px;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      color: #111111;
+      background-color: #ffffff;
+      border: 1px solid #d4d1cb;
+      border-radius: 5px;
+      padding: 3px 11px;
+      min-width: 68px;
       text-align: center;
-      transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+      opacity: 0.88;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      transition: background-color 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s, transform 0.15s;
     }
 
     .relogio-jogador.ativo {
-      background-color: #36332e;
-      color: #ffffff;
-      border-color: #696359;
+      opacity: 1;
+      border-color: #ffffff;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
     }
 
     .relogio-jogador.baixo {
-      color: #ff7b7b;
-      border-color: #8f3a3a;
+      background-color: #c93b3b;
+      color: #ffffff;
+      border-color: #ff6b6b;
+      opacity: 1;
     }
 
     .relogio-jogador.oculto {
@@ -183,7 +188,7 @@
     .painel-lateral {
       width: 280px;
       height: 480px;
-      margin-top: 30px;
+      margin-top: 32px;
       background-color: #211f1c;
       border: 1px solid #36332f;
       border-radius: 4px;
