@@ -295,7 +295,7 @@
 
     .botoes-acao {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       align-items: center;
       justify-content: center;
     }
@@ -309,13 +309,51 @@
       border-radius: 4px;
       cursor: pointer;
       font-size: 12px;
+      white-space: nowrap;
+      transition: background-color 0.15s;
     }
 
     button.btn-acao:hover {
       background-color: #4a4743;
     }
 
-    /* Botão circular vermelho com bandeira branca (desistência) */
+    /* Botão compacto com ícone para inverter lado (atalho: X) */
+    button.btn-icone {
+      width: 32px;
+      height: 30px;
+      background-color: #363431;
+      color: #e4e1dc;
+      border: 1px solid #4a4743;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      transition: transform 0.12s, background-color 0.15s, color 0.15s;
+    }
+
+    button.btn-icone:hover {
+      background-color: #4a4743;
+      color: #fff;
+    }
+
+    button.btn-icone:active {
+      transform: scale(0.95);
+    }
+
+    button.btn-icone svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Botão circular vermelho com bandeira branca (desistência, atalho: D) */
     button.btn-desistir {
       width: 30px;
       height: 30px;
@@ -428,8 +466,15 @@
 
         <div class="botoes-acao">
           <button class="btn-acao" onclick="reiniciarJogo()">Nova Partida</button>
-          <button class="btn-acao" onclick="inverterTabuleiro()">Inverter Lado (X)</button>
-          <button class="btn-desistir" id="btn-desistir" onclick="desistirPartida()" title="Desistir da partida">
+          <button class="btn-icone" onclick="inverterTabuleiro()" title="Inverter lado (X)" aria-label="Inverter lado">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 7h11l-3-3"/>
+              <path d="M18 7l-3 3"/>
+              <path d="M17 17H6l3 3"/>
+              <path d="M6 17l3-3"/>
+            </svg>
+          </button>
+          <button class="btn-desistir" id="btn-desistir" onclick="desistirPartida()" title="Desistir da partida (D)" aria-label="Desistir da partida">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M5 3a1 1 0 0 1 1 1v1h12.2c.75 0 1.18.85.74 1.46L16.2 10.2l2.74 3.74c.44.61.01 1.46-.74 1.46H6v6a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1z"/>
             </svg>
@@ -538,7 +583,7 @@
     let posicoesFen = [jogo.fen()];
     let lancesHistorico = [];
     let indiceVisual = 0;
-    let vencedorPorDesistencia = null; // 'w' ou 'b' quando alguém desiste
+    let vencedorPorDesistencia = null;
 
     function detectarAbertura(ateIndice) {
       if (ateIndice === 0) {
@@ -904,6 +949,9 @@
     };
 
     document.addEventListener('keydown', (e) => {
+      const tag = document.activeElement ? document.activeElement.tagName : '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         window.irParaIndice(indiceVisual - 1);
@@ -918,6 +966,8 @@
         window.irParaIndice(lancesHistorico.length);
       } else if (e.key.toLowerCase() === 'x') {
         window.inverterTabuleiro();
+      } else if (e.key.toLowerCase() === 'd') {
+        window.desistirPartida();
       }
     });
 
