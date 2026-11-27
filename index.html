@@ -729,6 +729,11 @@
 
       timeoutBot = setTimeout(() => {
         if (reqId !== idSolicitacaoBot) return;
+        if (indiceVisual !== lancesHistorico.length || jogo.turn() !== corBot) {
+          botPensando = false;
+          atualizarStatus(jogo);
+          return;
+        }
         const fenAtual = jogo.fen();
         stockfishWorker.postMessage(`setoption name Skill Level value ${nivel.skill}`);
         stockfishWorker.postMessage(`position fen ${fenAtual}`);
@@ -741,7 +746,8 @@
       botPensando = false;
 
       const corBot = obterCorBot();
-      if (!corBot || jogo.turn() !== corBot) {
+      // Se o jogador voltou no histórico enquanto o bot pensava, não sobrescreve a revisão
+      if (!corBot || jogo.turn() !== corBot || indiceVisual !== lancesHistorico.length) {
         atualizarStatus(jogo);
         return;
       }
@@ -757,7 +763,10 @@
 
       const lance = jogo.move({ from, to, promotion });
       if (lance) {
-        registrarNovoLance(lance);
+        posicoesFen.push(jogo.fen());
+        lancesHistorico.push(lance);
+        indiceVisual = lancesHistorico.length;
+        renderizarPosicaoVisual(lance);
       } else {
         renderizarPosicaoVisual(null);
       }
@@ -1050,14 +1059,14 @@
       vencedorPorDesistencia = null;
     }
 
-    function registrarNovoLance(lance) {
+    function registrarNovoLance(lance, dispararBot = true) {
       if (!lance) return;
       vencedorPorDesistencia = null;
       posicoesFen.push(jogo.fen());
       lancesHistorico.push(lance);
       indiceVisual = lancesHistorico.length;
       renderizarPosicaoVisual(lance);
-      verificarTurnoDoBot();
+      if (dispararBot) verificarTurnoDoBot();
     }
 
     function ehPromocao(orig, dest) {
@@ -1084,7 +1093,7 @@
         btn.onclick = () => {
           modalPromocao.classList.remove('ativo');
           const lance = jogo.move({ from: orig, to: dest, promotion: p.codigo });
-          registrarNovoLance(lance);
+          registrarNovoLance(lance, true);
         };
         opcoesPromocao.appendChild(btn);
       });
@@ -1109,22 +1118,8 @@
             return;
           }
 
-          const corBot = obterCorBot();
-          // Impede arrastar no lugar do bot enquanto ele está pensando
-          if (botPensando && indiceVisual === lancesHistorico.length) {
-            renderizarPosicaoVisual(null);
-            return;
-          }
-
           if (indiceVisual < lancesHistorico.length) {
             truncarParaIndiceVisual();
-          }
-
-          // Se após voltar no histórico caiu exatamente na vez do bot, deixa o bot jogar
-          if (corBot && jogo.turn() === corBot) {
-            renderizarPosicaoVisual(null);
-            verificarTurnoDoBot();
-            return;
           }
 
           if (ehPromocao(orig, dest)) {
@@ -1136,12 +1131,13 @@
             renderizarPosicaoVisual(null);
             return;
           }
-          registrarNovoLance(lance);
+          registrarNovoLance(lance, true);
         }
       }
     });
 
     selectAdversario.addEventListener('change', () => {
+      selectAdversario.blur();
       const corBot = obterCorBot();
       selectDificuldade.style.display = corBot ? 'inline-block' : 'none';
       cancelarCalculoBot();
@@ -1161,6 +1157,7 @@
     });
 
     selectDificuldade.addEventListener('change', () => {
+      selectDificuldade.blur();
       renderizarPosicaoVisual(null);
       if (botPensando) {
         cancelarCalculoBot();
@@ -1173,7 +1170,6 @@
       cancelarCalculoBot();
       modalPromocao.classList.remove('ativo');
       const corBot = obterCorBot();
-      // Em modo vs Bot, clicar em desistir sempre concede vitória ao Bot
       const quemDesistiu = corBot ? (corBot === 'w' ? 'b' : 'w') : jogo.turn();
       vencedorPorDesistencia = quemDesistiu === 'w' ? 'b' : 'w';
       indiceVisual = lancesHistorico.length;
@@ -1182,20 +1178,20 @@
     };
 
     window.irParaIndice = (novoIndice) => {
+      cancelarCalculoBot();
       modalPromocao.classList.remove('ativo');
       const limite = lancesHistorico.length;
       const alvo = Math.max(0, Math.min(limite, novoIndice));
-      if (alvo === indiceVisual) return;
       indiceVisual = alvo;
       renderizarPosicaoVisual(null);
-      if (alvo === limite) {
-        verificarTurnoDoBot();
-      }
     };
 
     document.addEventListener('keydown', (e) => {
       const tag = document.activeElement ? document.activeElement.tagName : '';
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (tag === 'SELECT') {
+        document.activeElement.blur();
+      }
 
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
