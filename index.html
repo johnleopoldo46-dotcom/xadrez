@@ -194,8 +194,35 @@
       border-bottom: 1px solid #322f2b;
       padding: 7px 10px;
       display: flex;
-      gap: 6px;
+      gap: 8px;
       align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .grupo-controle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .rotulo-controle {
+      font-size: 11px;
+      font-weight: 600;
+      color: #9e9a92;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .rotulo-controle svg {
+      width: 13px;
+      height: 13px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
     .select-modo {
@@ -203,7 +230,7 @@
       color: #e4e1dc;
       border: 1px solid #44403a;
       border-radius: 4px;
-      padding: 4px 6px;
+      padding: 3px 6px;
       font-size: 12px;
       cursor: pointer;
       outline: none;
@@ -214,11 +241,11 @@
     }
 
     #select-adversario {
-      flex: 1;
+      width: 118px;
     }
 
     #select-dificuldade {
-      width: 84px;
+      width: 72px;
     }
 
     .lista-lances-container {
@@ -482,17 +509,31 @@
       </div>
 
       <div class="barra-bot">
-        <select id="select-adversario" class="select-modo" title="Modo de jogo">
-          <option value="humano">2 Jogadores</option>
-          <option value="bot-pretas">Brancas vs Bot</option>
-          <option value="bot-brancas">Pretas vs Bot</option>
-        </select>
+        <div class="grupo-controle">
+          <label for="select-adversario" class="rotulo-controle">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4" y="7" width="16" height="12" rx="2"/>
+              <path d="M12 3v4"/>
+              <circle cx="9" cy="13" r="1.2"/>
+              <circle cx="15" cy="13" r="1.2"/>
+            </svg>
+            Modo:
+          </label>
+          <select id="select-adversario" class="select-modo" title="Modo de jogo">
+            <option value="humano">2 Jogadores</option>
+            <option value="bot-pretas">Brancas vs Bot</option>
+            <option value="bot-brancas">Pretas vs Bot</option>
+          </select>
+        </div>
 
-        <select id="select-dificuldade" class="select-modo" title="Dificuldade do Stockfish" style="display: none;">
-          <option value="facil">Fácil</option>
-          <option value="medio" selected>Médio</option>
-          <option value="dificil">Difícil</option>
-        </select>
+        <div class="grupo-controle" id="grupo-dificuldade" style="display: none;">
+          <label for="select-dificuldade" class="rotulo-controle">Nível:</label>
+          <select id="select-dificuldade" class="select-modo" title="Dificuldade do Stockfish">
+            <option value="facil">Fácil</option>
+            <option value="medio" selected>Médio</option>
+            <option value="dificil">Difícil</option>
+          </select>
+        </div>
       </div>
 
       <div class="lista-lances-container" id="lista-lances-container">
@@ -544,6 +585,7 @@
     const nomeAberturaEl = document.getElementById('nome-abertura');
     const btnDesistir = document.getElementById('btn-desistir');
     const selectAdversario = document.getElementById('select-adversario');
+    const grupoDificuldade = document.getElementById('grupo-dificuldade');
     const selectDificuldade = document.getElementById('select-dificuldade');
 
     const baseSom = 'https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard';
@@ -746,7 +788,6 @@
       botPensando = false;
 
       const corBot = obterCorBot();
-      // Se o jogador voltou no histórico enquanto o bot pensava, não sobrescreve a revisão
       if (!corBot || jogo.turn() !== corBot || indiceVisual !== lancesHistorico.length) {
         atualizarStatus(jogo);
         return;
@@ -1139,7 +1180,7 @@
     selectAdversario.addEventListener('change', () => {
       selectAdversario.blur();
       const corBot = obterCorBot();
-      selectDificuldade.style.display = corBot ? 'inline-block' : 'none';
+      grupoDificuldade.style.display = corBot ? 'inline-flex' : 'none';
       cancelarCalculoBot();
 
       if (corBot === 'w' && cg.state.orientation === 'white') {
