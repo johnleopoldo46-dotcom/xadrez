@@ -148,7 +148,7 @@
       height: 56px;
     }
 
-    /* Painel lateral direito (Abertura + Lista de Lances + Navegação) */
+    /* Painel lateral direito (Abertura + Lista de Lances + Controles) */
     .painel-lateral {
       width: 280px;
       height: 480px;
@@ -296,6 +296,7 @@
     .botoes-acao {
       display: flex;
       gap: 6px;
+      align-items: center;
       justify-content: center;
     }
 
@@ -312,6 +313,45 @@
 
     button.btn-acao:hover {
       background-color: #4a4743;
+    }
+
+    /* Botão circular vermelho com bandeira branca (desistência) */
+    button.btn-desistir {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: #c93b3b;
+      border: 1px solid #e05353;
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+      transition: transform 0.12s, background-color 0.15s, opacity 0.15s;
+    }
+
+    button.btn-desistir:hover:not(:disabled) {
+      background-color: #de4545;
+      transform: scale(1.07);
+    }
+
+    button.btn-desistir:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    button.btn-desistir:disabled {
+      opacity: 0.38;
+      cursor: default;
+      transform: none;
+    }
+
+    button.btn-desistir svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
     }
 
     #status {
@@ -389,6 +429,11 @@
         <div class="botoes-acao">
           <button class="btn-acao" onclick="reiniciarJogo()">Nova Partida</button>
           <button class="btn-acao" onclick="inverterTabuleiro()">Inverter Lado (X)</button>
+          <button class="btn-desistir" id="btn-desistir" onclick="desistirPartida()" title="Desistir da partida">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 3a1 1 0 0 1 1 1v1h12.2c.75 0 1.18.85.74 1.46L16.2 10.2l2.74 3.74c.44.61.01 1.46-.74 1.46H6v6a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1z"/>
+            </svg>
+          </button>
         </div>
       </div>
     </div>
@@ -406,13 +451,12 @@
     const listaLancesEl = document.getElementById('lista-lances-container');
     const ecoEl = document.getElementById('eco-abertura');
     const nomeAberturaEl = document.getElementById('nome-abertura');
+    const btnDesistir = document.getElementById('btn-desistir');
 
     const baseSom = 'https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard';
     const basePeca = 'https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/cburnett';
 
-    // Banco de aberturas, defesas e gambitos (prefixo de lances em SAN -> ECO + Nome)
     const ABERTURAS = [
-      // 1. e4
       { seq: 'e4', eco: 'B00', nome: 'Abertura do Peão do Rei' },
       { seq: 'e4 e5', eco: 'C20', nome: 'Jogo Aberto (1. e4 e5)' },
       { seq: 'e4 e5 Nf3', eco: 'C40', nome: 'Abertura do Cavalo do Rei' },
@@ -443,7 +487,6 @@
       { seq: 'e4 e5 d4', eco: 'C21', nome: 'Abertura do Centro' },
       { seq: 'e4 e5 d4 exd4 c3', eco: 'C21', nome: 'Gambito Dinamarquês' },
 
-      // Caro-Kann
       { seq: 'e4 c6', eco: 'B10', nome: 'Defesa Caro-Kann' },
       { seq: 'e4 c6 d4 d5', eco: 'B12', nome: 'Defesa Caro-Kann: Variante Principal' },
       { seq: 'e4 c6 d4 d5 e5', eco: 'B12', nome: 'Defesa Caro-Kann: Variante do Avanço' },
@@ -451,7 +494,6 @@
       { seq: 'e4 c6 d4 d5 Nc3', eco: 'B15', nome: 'Defesa Caro-Kann: Variante Clássica / Tartakower' },
       { seq: 'e4 c6 d4 d5 Nd2', eco: 'B12', nome: 'Defesa Caro-Kann: Variante Moderna' },
 
-      // Siciliana, Francesa, Escandinava, Pirc, Alekhine, Moderna
       { seq: 'e4 c5', eco: 'B20', nome: 'Defesa Siciliana' },
       { seq: 'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6', eco: 'B90', nome: 'Defesa Siciliana: Variante Najdorf' },
       { seq: 'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6', eco: 'B70', nome: 'Defesa Siciliana: Variante do Dragão' },
@@ -465,7 +507,6 @@
       { seq: 'e4 g6', eco: 'B06', nome: 'Defesa Moderna' },
       { seq: 'e4 Nf6', eco: 'B02', nome: 'Defesa Alekhine' },
 
-      // 1. d4 (Gambito da Dama, Eslava, Índias, Holandesa, London)
       { seq: 'd4', eco: 'A40', nome: 'Abertura do Peão da Dama' },
       { seq: 'd4 d5', eco: 'D00', nome: 'Jogo Fechado (1. d4 d5)' },
       { seq: 'd4 d5 c4', eco: 'D06', nome: 'Gambito da Dama' },
@@ -486,7 +527,6 @@
       { seq: 'd4 Nf6 c4 e5', eco: 'A51', nome: 'Gambito Budapeste' },
       { seq: 'd4 f5', eco: 'A80', nome: 'Defesa Holandesa' },
 
-      // Flanco e outras
       { seq: 'c4', eco: 'A10', nome: 'Abertura Inglesa' },
       { seq: 'Nf3', eco: 'A04', nome: 'Abertura Réti / Zukertort' },
       { seq: 'f4', eco: 'A02', nome: 'Abertura Bird' },
@@ -495,10 +535,10 @@
       { seq: 'b4', eco: 'A00', nome: 'Abertura Sokolsky (Orangotango)' }
     ];
 
-    // Armazena a linha do tempo completa: posicoes[0] é a posição inicial
     let posicoesFen = [jogo.fen()];
     let lancesHistorico = [];
     let indiceVisual = 0;
+    let vencedorPorDesistencia = null; // 'w' ou 'b' quando alguém desiste
 
     function detectarAbertura(ateIndice) {
       if (ateIndice === 0) {
@@ -560,7 +600,6 @@
 
       listaLancesEl.innerHTML = html;
 
-      // Mantém o lance selecionado visível na rolagem
       const celulaAtiva = listaLancesEl.querySelector('.celula-lance.ativo');
       if (celulaAtiva) {
         celulaAtiva.scrollIntoView({ block: 'nearest' });
@@ -701,6 +740,16 @@
     }
 
     function atualizarStatus(instanciaVisual) {
+      if (vencedorPorDesistencia && indiceVisual === lancesHistorico.length) {
+        const vencedorNome = vencedorPorDesistencia === 'w' ? 'Brancas' : 'Pretas';
+        statusEl.textContent = `Vitória das ${vencedorNome} (desistência)`;
+        btnDesistir.disabled = true;
+        return;
+      }
+
+      btnDesistir.disabled = estaEmXequeMate(instanciaVisual) ||
+        (typeof instanciaVisual.isDraw === 'function' && instanciaVisual.isDraw());
+
       if (estaEmXequeMate(instanciaVisual)) {
         statusEl.textContent = `Xeque-mate! Vitória das ${instanciaVisual.turn() === 'w' ? 'Pretas' : 'Brancas'}.`;
       } else if (typeof instanciaVisual.isDraw === 'function' && instanciaVisual.isDraw()) {
@@ -728,6 +777,7 @@
       const fenVisual = posicoesFen[indiceVisual];
       const instanciaVisual = new Chess(fenVisual);
       const lanceAnterior = indiceVisual > 0 ? lancesHistorico[indiceVisual - 1] : null;
+      const partidaEncerrada = Boolean(vencedorPorDesistencia && indiceVisual === lancesHistorico.length);
 
       cg.set({
         fen: fenVisual,
@@ -735,9 +785,9 @@
         check: estaEmXeque(instanciaVisual),
         lastMove: lanceAnterior ? [lanceAnterior.from, lanceAnterior.to] : undefined,
         movable: {
-          color: 'both',
+          color: partidaEncerrada ? false : 'both',
           free: false,
-          dests: obterLancesLegais(instanciaVisual)
+          dests: partidaEncerrada ? new Map() : obterLancesLegais(instanciaVisual)
         }
       });
 
@@ -755,10 +805,12 @@
         lancesHistorico = lancesHistorico.slice(0, indiceVisual);
         jogo.load(posicoesFen[indiceVisual]);
       }
+      vencedorPorDesistencia = null;
     }
 
     function registrarNovoLance(lance) {
       if (!lance) return;
+      vencedorPorDesistencia = null;
       posicoesFen.push(jogo.fen());
       lancesHistorico.push(lance);
       indiceVisual = lancesHistorico.length;
@@ -809,6 +861,11 @@
       },
       events: {
         move: (orig, dest) => {
+          if (vencedorPorDesistencia) {
+            renderizarPosicaoVisual(null);
+            return;
+          }
+
           if (indiceVisual < lancesHistorico.length) {
             truncarParaIndiceVisual();
           }
@@ -826,6 +883,16 @@
         }
       }
     });
+
+    window.desistirPartida = () => {
+      if (vencedorPorDesistencia || estaEmXequeMate(jogo)) return;
+      modalPromocao.classList.remove('ativo');
+      const quemDesistiu = jogo.turn();
+      vencedorPorDesistencia = quemDesistiu === 'w' ? 'b' : 'w';
+      indiceVisual = lancesHistorico.length;
+      renderizarPosicaoVisual(null);
+      reproduzirSom(sons.mover);
+    };
 
     window.irParaIndice = (novoIndice) => {
       modalPromocao.classList.remove('ativo');
@@ -860,6 +927,7 @@
       posicoesFen = [jogo.fen()];
       lancesHistorico = [];
       indiceVisual = 0;
+      vencedorPorDesistencia = null;
       cg.set({
         fen: jogo.fen(),
         turnColor: 'white',
